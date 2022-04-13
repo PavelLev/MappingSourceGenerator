@@ -86,8 +86,10 @@ public class Parser
                 }
 
                 var allMappingMethods = new List<MappingMethod>();
-                foreach (var (methodDeclarationSyntax, methodSymbol) in methodByDeclarationSyntax)
+                foreach (var methodDeclarationSyntaxMethodSymbolPair in methodByDeclarationSyntax)
                 {
+                    var methodDeclarationSyntax = methodDeclarationSyntaxMethodSymbolPair.Key;
+                    var methodSymbol = methodDeclarationSyntaxMethodSymbolPair.Value;
                     if (!HasGenerateMappingAttribute(methodSymbol))
                     {
                         continue;
@@ -453,7 +455,7 @@ public class Parser
                 default);
         }
 
-        var parameterName = string.Concat(sourceType.Name[0].ToString().ToLower(), sourceType.Name.AsSpan(1));
+        var parameterName = string.Concat(sourceType.Name[0].ToString().ToLower(), sourceType.Name.Substring(1));
 
         var partialModifier = modifiers.FirstOrDefault(_ => _.Text == "partial");
         if (partialModifier != default)
@@ -608,7 +610,7 @@ public class Parser
             parentSyntax = parentSyntax.Parent;
         }
 
-        return (string.Join('.', namespaces), usings.ToFullString());
+        return (string.Join(".", namespaces), usings.ToFullString());
     }
 
     private void ReportDiagnostic(
