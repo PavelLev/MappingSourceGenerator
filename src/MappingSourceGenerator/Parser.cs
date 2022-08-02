@@ -1,11 +1,12 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using MappingSourceGenerator.Markers;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace MappingSourceGenerator;
 
 public class Parser
 {
-    private const string GenerateMappingAttributeFullName = "MappingSourceGenerator.Markers.GenerateMappingAttribute";
+    private static readonly string GenerateMappingAttributeFullName = typeof(GenerateMappingAttribute).FullName;
 
     private readonly CancellationToken _cancellationToken;
     private readonly Compilation _compilation;
