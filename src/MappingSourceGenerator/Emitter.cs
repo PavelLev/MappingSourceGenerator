@@ -9,8 +9,8 @@ public class Emitter
 
     private static readonly IReadOnlyCollection<string> RequiredUsingStatements = new[]
     {
-        $"using System;{Environment.NewLine}",
-        $"using System.Linq;{Environment.NewLine}",
+        "using System;",
+        "using System.Linq;",
     };
 
     private readonly StringBuilder _builder = new (DefaultStringBuilderCapacity);
@@ -32,7 +32,7 @@ public class Emitter
             {
                 if (!mappingClass.Usings.Contains(requiredUsingStatement))
                 {
-                    _builder.Append(requiredUsingStatement);
+                    _builder.AppendLine(requiredUsingStatement);
                 }
             }
         }
