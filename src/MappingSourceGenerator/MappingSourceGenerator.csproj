@@ -7,7 +7,12 @@
         <Nullable>enable</Nullable>
         <AnalyzerRoslynVersion>4.0</AnalyzerRoslynVersion>
         <PackageProjectUrl>https://github.com/PavelLev/MappingSourceGenerator</PackageProjectUrl>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
     </PropertyGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="../MappingSourceGenerator.Markers/MappingSourceGenerator.Markers.csproj" PrivateAssets="All" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" PrivateAssets="all" />
@@ -20,13 +25,13 @@
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <RepositoryUrl>https://github.com/PavelLev/MappingSourceGenerator</RepositoryUrl>
         <Description>An object to object mapping generator using Roslyn source generators.</Description>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <ItemGroup>
         <None Include="..\..\LICENSE" Pack="true" PackagePath="" Visible="false" />
         <None Include="$(OutputPath)\$(TargetFileName)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="$(OutputPath)\MappingSourceGenerator.Markers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="$(OutputPath)\MappingSourceGenerator.Markers.dll" Pack="true" PackagePath="lib\netstandard2.0" Visible="true" />
     </ItemGroup>
 
 </Project>

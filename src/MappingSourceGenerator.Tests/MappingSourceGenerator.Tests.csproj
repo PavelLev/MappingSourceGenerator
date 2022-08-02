@@ -23,7 +23,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../MappingSourceGenerator/MappingSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-        <ProjectReference Include="../MappingSourceGenerator.Markers/MappingSourceGenerator.Markers.csproj" />
+        <ProjectReference Include="../MappingSourceGenerator.Markers/MappingSourceGenerator.Markers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
     </ItemGroup>
 
 </Project>
