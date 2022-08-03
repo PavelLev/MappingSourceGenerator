@@ -5,7 +5,6 @@ This project has source generator that allows to generate mappings without any b
 | Package                                                                                                                                                                      | NuGet                                                                                                                                         |
 |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | MappingSourceGenerator                                                                                                                                                       | [![NuGet](https://img.shields.io/nuget/v/MappingSourceGenerator.svg)](https://www.nuget.org/packages/MappingSourceGenerator/)                 |
-| MappingSourceGenerator.Markers | [![NuGet](https://img.shields.io/nuget/v/MappingSourceGenerator.Markers.svg)](https://www.nuget.org/packages/MappingSourceGenerator.Markers/) |
 
 ## Features:
 - Extension methods
@@ -32,3 +31,6 @@ public static partial class Mapper
 }
 ```
 
+## Support
+
+Feel free to create issues for bugs or feature requests. General improvement suggestions (e.g. regarding tests) are appreciated.
