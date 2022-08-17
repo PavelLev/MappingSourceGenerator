@@ -85,6 +85,27 @@ public class SimpleModelTests
         Assert.Equal(person1.Name, person2.Name);
         Assert.Equal(person1.Age, person2.Age);
     }
+
+    [Fact]
+    public void EnumShouldBeMappedToSupersetEnumTest()
+    {
+        var specificErrorCode = SpecificErrorCode.ErrorB;
+        var generalErrorCode = specificErrorCode.Map();
+    }
+
+    public enum GeneralErrorCode
+    {
+        ErrorA,
+        ErrorB,
+        ErrorC,
+        ErrorD,
+    }
+
+    public enum SpecificErrorCode
+    {
+        ErrorB,
+        ErrorC,
+    }
 }
 
 public static partial class SimpleModelTestsMapper
@@ -100,4 +121,7 @@ public static partial class SimpleModelTestsMapper
 
     [GenerateMapping]
     public static partial SimpleModelTests.PersonWithOptionalName2 MapToOptionalName(this SimpleModelTests.Person1 person1);
+
+    [GenerateMapping]
+    public static partial SimpleModelTests.GeneralErrorCode Map(this SimpleModelTests.SpecificErrorCode specificErrorCode);
 }
