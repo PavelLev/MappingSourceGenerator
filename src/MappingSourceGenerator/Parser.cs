@@ -522,17 +522,17 @@ public class Parser
         var returnTypeMembers = returnType.GetMembers();
         var parameterTypeMembers = parameterType.GetMembers();
         var enumValues = new List<string>();
-        foreach (var returnTypeMember in returnTypeMembers)
+        foreach (var parameterTypeMember in parameterTypeMembers)
         {
-            if (!IsEnumValueConstant(returnType, returnTypeMember))
+            if (!IsEnumValueConstant(parameterType, parameterTypeMember))
             {
                 continue;
             }
 
             var foundMapping = false;
-            foreach (var parameterTypeMember in parameterTypeMembers)
+            foreach (var returnTypeMember in returnTypeMembers)
             {
-                if (!IsEnumValueConstant(parameterType, parameterTypeMember))
+                if (!IsEnumValueConstant(returnType, returnTypeMember))
                 {
                     continue;
                 }
@@ -549,12 +549,12 @@ public class Parser
                     default,
                     new(
                         DiagnosticDescriptors.EnumMappingNotFound,
-                        returnTypeMember.Name,
+                        parameterTypeMember.Name,
                         returnType.ToDisplayString(),
                         parameterSubPath));
             }
 
-            enumValues.Add(returnTypeMember.Name);
+            enumValues.Add(parameterTypeMember.Name);
         }
 
         var mappingMethod = new MappingMethod(
