@@ -106,6 +106,22 @@ public class SimpleModelTests
         ErrorB,
         ErrorC,
     }
+
+    [Fact]
+    public void NullableReferenceToUnspecifiedReferenceTest()
+    {
+        var person1 = new PersonWithOptionalName1("Bob", 26);
+        var person2 = person1.MapToUnspecifiedName();
+
+        Assert.Equal(person1.Name, person2.Name);
+        Assert.Equal(person1.Age, person2.Age);
+    }
+    
+#nullable disable
+    public record PersonWithUnspecifiedName2(
+        string Name,
+        int Age);
+#nullable restore
 }
 
 public static partial class SimpleModelTestsMapper
@@ -124,4 +140,7 @@ public static partial class SimpleModelTestsMapper
 
     [GenerateMapping]
     public static partial SimpleModelTests.GeneralErrorCode Map(this SimpleModelTests.SpecificErrorCode specificErrorCode);
+
+    [GenerateMapping]
+    public static partial SimpleModelTests.PersonWithUnspecifiedName2 MapToUnspecifiedName(this SimpleModelTests.PersonWithOptionalName1 personWithOptionalName1);
 }

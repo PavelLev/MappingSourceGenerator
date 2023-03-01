@@ -404,7 +404,8 @@ public class Parser
 
         // Substring is used to remove "?" symbol. ITypeSymbol.OriginalDefinition doesn't work for generic types e.g. collections
         if (targetTypeDisplayString == sourceTypeDisplayString
-            || targetType.NullableAnnotation == NullableAnnotation.Annotated && targetTypeDisplayString.Substring(0, targetTypeDisplayString.Length - 1) == sourceTypeDisplayString)
+            || targetType.NullableAnnotation == NullableAnnotation.Annotated && targetTypeDisplayString.Substring(0, targetTypeDisplayString.Length - 1) == sourceTypeDisplayString
+            || targetType.NullableAnnotation == NullableAnnotation.None && sourceType.NullableAnnotation == NullableAnnotation.Annotated && targetTypeDisplayString == sourceTypeDisplayString.Substring(0, sourceTypeDisplayString.Length - 1))
         {
             return (new(propertyName, MappingPropertyKind.Direct), default, default);
         }

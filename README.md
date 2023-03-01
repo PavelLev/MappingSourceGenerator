@@ -18,7 +18,7 @@ This project has source generator that allows to generate mappings without any b
 1. Add package references to required packages
 
 ```xml
-        <PackageReference Include="MappingSourceGenerator" Version="0.1.6" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="MappingSourceGenerator" Version="0.1.7" PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
 2. Create method definition for source generator. It should be `static partial` method marked with `MappingSourceGenerator.Markers.GenerateMappingAttribute` in `static partial` class.
