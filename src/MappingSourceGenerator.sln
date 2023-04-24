@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		..\.gitignore = ..\.gitignore
 		..\README.md = ..\README.md
 		..\LICENSE = ..\LICENSE
+		..\contrib\publish.cake = ..\contrib\publish.cake
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MappingSourceGenerator.Markers", "MappingSourceGenerator.Markers\MappingSourceGenerator.Markers.csproj", "{210C9CCF-237D-42E5-9CF1-FC997EA70FAF}"
