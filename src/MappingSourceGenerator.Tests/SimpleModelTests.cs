@@ -1,3 +1,4 @@
+using System;
 using MappingSourceGenerator.Markers;
 using Xunit;
 
@@ -122,6 +123,24 @@ public class SimpleModelTests
         string Name,
         int Age);
 #nullable restore
+
+    [Fact]
+    public void ObsoleteClassesShouldBeMappedTest()
+    {
+        var person1 = new Person1(
+            "Bob",
+            26);
+
+        var obsoletePerson2 = person1.MapToObsolete();
+
+        Assert.Equal(person1.Name, obsoletePerson2.Name);
+        Assert.Equal(person1.Age, obsoletePerson2.Age);
+    }
+    
+    [Obsolete("Obsolete record for test purposes")]
+    public record ObsoletePerson2(
+        string Name,
+        int Age);
 }
 
 public static partial class SimpleModelTestsMapper
@@ -143,4 +162,9 @@ public static partial class SimpleModelTestsMapper
 
     [GenerateMapping]
     public static partial SimpleModelTests.PersonWithUnspecifiedName2 MapToUnspecifiedName(this SimpleModelTests.PersonWithOptionalName1 personWithOptionalName1);
+    
+#pragma warning disable CS0618 // allow obsolete class usage for ObsoleteClassesShouldBeMappedTest
+    [GenerateMapping]
+    public static partial SimpleModelTests.ObsoletePerson2 MapToObsolete(this SimpleModelTests.Person1 person1);
+#pragma warning restore
 }
