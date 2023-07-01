@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using FluentAssertions;
+using FluentAssertions.Execution;
 using MappingSourceGenerator.Markers;
 using Xunit;
 
@@ -13,9 +15,10 @@ public class NestedModelTests
         var personWithCar1 = new PersonWithCar1(
             "Bob",
             new("Model S"));
+        
         var personWithCar2 = personWithCar1.Map();
 
-        Assert.Equal(personWithCar1.Car.Model, personWithCar2.Car.Model);
+        personWithCar2.Car.Model.Should().Be(personWithCar1.Car.Model);
     }
 
     public record PersonWithCar1(
@@ -38,9 +41,10 @@ public class NestedModelTests
         var personWithCar1 = new PersonWithCars1(
             "Bob",
             new Car1[] {new("Model S"), new("GT-R")});
+        
         var personWithCar2 = personWithCar1.Map();
 
-        Assert.Equal(personWithCar1.Cars.Select(_ => _.Model), personWithCar2.Cars.Select(_ => _.Model));
+        personWithCar2.Cars.Select(_ => _.Model).Should().BeEquivalentTo(personWithCar1.Cars.Select(_ => _.Model));
     }
 
     public record PersonWithCars1(
@@ -61,10 +65,15 @@ public class NestedModelTests
                 new("Model S", CarType1.Electric),
                 new("GT-R", CarType1.Petrol),
             });
+        
         var personWithCarWithType2 = personWithCarWithType1.Map();
 
-        Assert.Equal(CarType2.Electric, personWithCarWithType2.Cars.ElementAt(0).Type);
-        Assert.Equal(CarType2.Petrol, personWithCarWithType2.Cars.ElementAt(1).Type);
+        using (new AssertionScope())
+        {
+            personWithCarWithType2.Cars.Count.Should().Be(2);
+            personWithCarWithType2.Cars.ElementAt(0).Type.Should().Be(CarType2.Electric);
+            personWithCarWithType2.Cars.ElementAt(1).Type.Should().Be(CarType2.Petrol);
+        }
     }
 
     public record PersonWithCarWithType1(
@@ -96,14 +105,31 @@ public class NestedModelTests
     }
 
     [Fact]
-    public void NestedNullablePropertyTest()
+    public void NestedNullablePropertyWithValueTest()
     {
         var personWithNullableCar1 = new PersonWithNullableCar1(
             "Bob",
             new("Model S"));
+        
         var personWithNullableCar2 = personWithNullableCar1.Map();
 
-        Assert.Equal(personWithNullableCar1.Car!.Model, personWithNullableCar2.Car!.Model);
+        using (new AssertionScope())
+        {
+            personWithNullableCar2.Car.Should().NotBeNull();
+            personWithNullableCar2.Car!.Model.Should().Be(personWithNullableCar1.Car!.Model);
+        }
+    }
+
+    [Fact]
+    public void NestedNullablePropertyWithNullTest()
+    {
+        var personWithNullableCar1 = new PersonWithNullableCar1(
+            "Bob",
+            null);
+        
+        var personWithNullableCar2 = personWithNullableCar1.Map();
+
+        personWithNullableCar2.Car.Should().BeNull();
     }
 
     public record PersonWithNullableCar1(

@@ -1,40 +1,33 @@
-﻿namespace MappingSourceGenerator;
+﻿using Microsoft.CodeAnalysis;
 
-public class MappingMethod
+namespace MappingSourceGenerator;
+
+public record MappingMethod(
+    string ClassName,
+    IReadOnlyList<string> ClassContainingNames,
+    string Name,
+    Accessibility Accessibility,
+    bool IsPartial,
+    string ParameterTypeName,
+    IReadOnlyList<string> ParameterTypeContainingNames,
+    string ParameterName,
+    string ReturnTypeName,
+    IReadOnlyList<string> ReturnTypeContainingNames,
+    MappingMethodKind Kind,
+    IReadOnlyCollection<MappingProperty>? Properties,
+    IReadOnlyCollection<string>? EnumValues)
 {
-    public MappingMethod(
-        string name,
-        string modifiers,
-        string parameterTypeFullName,
-        string parameterName,
-        string returnTypeFullName,
-        MappingMethodKind kind,
-        IReadOnlyCollection<MappingProperty>? properties,
-        IReadOnlyCollection<string>? enumValues)
+    // Forcing default Equality comparison.
+    // Record by default doesn't handle collections properly
+    // so there is no point in having slow and incorrect implementation by default.
+    // Proper implementation is done by MappingMethodEqualityComparer.
+    public virtual bool Equals(MappingMethod? other)
     {
-        Name = name;
-        Modifiers = modifiers;
-        ParameterTypeFullName = parameterTypeFullName;
-        ParameterName = parameterName;
-        ReturnTypeFullName = returnTypeFullName;
-        Kind = kind;
-        Properties = properties;
-        EnumValues = enumValues;
+        return base.Equals(other);
     }
 
-    public string Name { get; }
-
-    public string Modifiers { get; }
-
-    public string ParameterTypeFullName { get; }
-
-    public string ParameterName { get; }
-
-    public string ReturnTypeFullName { get; }
-
-    public MappingMethodKind Kind { get; }
-
-    public IReadOnlyCollection<MappingProperty>? Properties { get; }
-
-    public IReadOnlyCollection<string>? EnumValues { get; }
+    public override int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
 }

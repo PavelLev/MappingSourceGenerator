@@ -12,7 +12,7 @@ public static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public static DiagnosticDescriptor MappingMethodShouldntReturnVoid { get; } = new(
+    public static DiagnosticDescriptor MappingMethodShouldNotReturnVoid { get; } = new(
         "MAPGEN1001",
         "Invalid mapping method",
         "Mapping method shouldn't return void",
@@ -28,6 +28,14 @@ public static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
+    public static DiagnosticDescriptor MappingMethodContainingClassShouldNotBeNested { get; } = new(
+        "MAPGEN1003",
+        "Invalid mapping method containing class",
+        "Mapping method containing class shouldn't be nested",
+        nameof(MappingGenerator),
+        DiagnosticSeverity.Error,
+        true);
+    
     public static DiagnosticDescriptor MappingMethodShouldHaveSingleParameter { get; } = new(
         "MAPGEN1010",
         "Invalid mapping method parameters",
@@ -36,7 +44,7 @@ public static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public static DiagnosticDescriptor MappingMethodShouldntBeGeneric { get; } = new(
+    public static DiagnosticDescriptor MappingMethodShouldNotBeGeneric { get; } = new(
         "MAPGEN1011",
         "Invalid mapping method parameters",
         "Mapping method shouldn't contain generic type parameters",
@@ -44,7 +52,7 @@ public static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public static DiagnosticDescriptor MappingMethodParameterShouldntBeNullable { get; } = new(
+    public static DiagnosticDescriptor MappingMethodParameterShouldNotBeNullable { get; } = new(
         "MAPGEN1012",
         "Invalid mapping method parameters",
         "Mapping method parameter shouldn't be nullable",
@@ -53,7 +61,7 @@ public static class DiagnosticDescriptors
         true);
 
     public static DiagnosticDescriptor MappingMethodParameterTypeNotSupported { get; } = new(
-        "MAPGEN1022",
+        "MAPGEN1013",
         "Invalid mapping method parameters",
         "Parameter type {0} of mapping method should be enum, class or struct",
         nameof(MappingGenerator),
@@ -87,7 +95,7 @@ public static class DiagnosticDescriptors
     public static DiagnosticDescriptor ConstructorMappingNotFound { get; } = new(
         "MAPGEN1030",
         "Invalid mapping",
-        "Mapping for '{0}' parameter of '{1}' constructor is not found in '{2}",
+        "Mapping for '{0}' parameter of '{1}' constructor is not found in type '{2}'",
         nameof(MappingGenerator),
         DiagnosticSeverity.Error,
         true);
@@ -95,7 +103,39 @@ public static class DiagnosticDescriptors
     public static DiagnosticDescriptor EnumMappingNotFound { get; } = new(
         "MAPGEN1031",
         "Invalid mapping",
-        "Mapping for '{0}' value of '{1}' enum is not found in '{2}",
+        "Mapping for '{0}' value of '{1}' enum is not found in enum '{2}'",
+        nameof(MappingGenerator),
+        DiagnosticSeverity.Error,
+        true);
+
+    public static DiagnosticDescriptor NullableToNonNullableMapping { get; } = new(
+        "MAPGEN1032",
+        "Invalid mapping",
+        "Trying to map nullable property '{0}' of type '{1}' into corresponding non-nullable constructor parameter of type '{2}' at path '{3}'",
+        nameof(MappingGenerator),
+        DiagnosticSeverity.Error,
+        true);
+
+    public static DiagnosticDescriptor EnumerableWithNullableItemMappingNotSupported { get; } = new(
+        "MAPGEN1033",
+        "Invalid mapping",
+        "Trying to map enumerable with nullable items property '{0}' of type '{1}' at path '{2}' which is not supported",
+        nameof(MappingGenerator),
+        DiagnosticSeverity.Error,
+        true);
+
+    public static DiagnosticDescriptor EnumerableToNonEnumerableMappingNotSupported { get; } = new(
+        "MAPGEN1034",
+        "Invalid mapping",
+        "Trying to map enumerable property '{0}' of type '{1}' into non-enumerable type '{2}' at path '{3}' which is not supported",
+        nameof(MappingGenerator),
+        DiagnosticSeverity.Error,
+        true);
+
+    public static DiagnosticDescriptor NonEnumerableToEnumerableMappingNotSupported { get; } = new(
+        "MAPGEN1035",
+        "Invalid mapping",
+        "Trying to map non-enumerable property '{0}' of type '{1}' into enumerable type '{2}' at path '{3}' which is not supported",
         nameof(MappingGenerator),
         DiagnosticSeverity.Error,
         true);

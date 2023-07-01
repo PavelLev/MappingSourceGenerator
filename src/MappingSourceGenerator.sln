@@ -12,7 +12,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MappingSourceGenerator.Markers", "MappingSourceGenerator.Markers\MappingSourceGenerator.Markers.csproj", "{210C9CCF-237D-42E5-9CF1-FC997EA70FAF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MappingSourceGenerator.Tests", "MappingSourceGenerator.Tests\MappingSourceGenerator.Tests.csproj", "{D8C16B49-6BE9-48FD-8508-4830A2ADE765}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MappingSourceGenerator.IntegrationTests", "MappingSourceGenerator.IntegrationTests\MappingSourceGenerator.IntegrationTests.csproj", "{D8C16B49-6BE9-48FD-8508-4830A2ADE765}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MappingSourceGenerator.Benchmarks", "MappingSourceGenerator.Benchmarks\MappingSourceGenerator.Benchmarks.csproj", "{96E90EDD-326B-4DA9-9FE1-F446D0360474}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MappingSourceGenerator.UnitTests", "MappingSourceGenerator.UnitTests\MappingSourceGenerator.UnitTests.csproj", "{9CF63E83-DB7E-43E3-883B-2345C6CAF17F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{9D0D0A8B-28E7-4CD2-A247-FE8A2EB18D2B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,5 +38,18 @@ Global
 		{D8C16B49-6BE9-48FD-8508-4830A2ADE765}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8C16B49-6BE9-48FD-8508-4830A2ADE765}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8C16B49-6BE9-48FD-8508-4830A2ADE765}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96E90EDD-326B-4DA9-9FE1-F446D0360474}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96E90EDD-326B-4DA9-9FE1-F446D0360474}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96E90EDD-326B-4DA9-9FE1-F446D0360474}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96E90EDD-326B-4DA9-9FE1-F446D0360474}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CF63E83-DB7E-43E3-883B-2345C6CAF17F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CF63E83-DB7E-43E3-883B-2345C6CAF17F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CF63E83-DB7E-43E3-883B-2345C6CAF17F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CF63E83-DB7E-43E3-883B-2345C6CAF17F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D8C16B49-6BE9-48FD-8508-4830A2ADE765} = {9D0D0A8B-28E7-4CD2-A247-FE8A2EB18D2B}
+		{9CF63E83-DB7E-43E3-883B-2345C6CAF17F} = {9D0D0A8B-28E7-4CD2-A247-FE8A2EB18D2B}
+		{96E90EDD-326B-4DA9-9FE1-F446D0360474} = {9D0D0A8B-28E7-4CD2-A247-FE8A2EB18D2B}
 	EndGlobalSection
 EndGlobal

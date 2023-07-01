@@ -1,4 +1,6 @@
 using System;
+using FluentAssertions;
+using FluentAssertions.Execution;
 using MappingSourceGenerator.Markers;
 using Xunit;
 
@@ -10,10 +12,14 @@ public class SimpleModelTests
     public void PrimitiveTypeTest()
     {
         var person1 = new Person1("Bob", 26);
+        
         var person2 = person1.Map();
 
-        Assert.Equal(person1.Name, person2.Name);
-        Assert.Equal(person1.Age, person2.Age);
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Age.Should().Be(person1.Age);
+        }
     }
 
     public record Person1(
@@ -31,19 +37,15 @@ public class SimpleModelTests
     public void EnumTest(string name, PhoneType1 sourcePhoneType, PhoneType2 expectedPhoneType)
     {
         var personWithPhoneType1 = new PersonWithPhoneType1(name, sourcePhoneType);
+        
         var personWithPhoneType2 = personWithPhoneType1.Map();
 
-        Assert.Equal(personWithPhoneType1.Name, personWithPhoneType2.Name);
-        Assert.Equal(expectedPhoneType, personWithPhoneType2.PhoneType);
+        personWithPhoneType2.PhoneType.Should().Be(expectedPhoneType);
     }
 
     public record PersonWithPhoneType1(
         string Name,
         PhoneType1 PhoneType);
-
-    public record PersonWithPhoneType2(
-        string Name,
-        PhoneType2 PhoneType);
 
     public enum PhoneType1
     {
@@ -51,6 +53,10 @@ public class SimpleModelTests
         Ios,
         Other,
     }
+
+    public record PersonWithPhoneType2(
+        string Name,
+        PhoneType2 PhoneType);
 
     public enum PhoneType2
     {
@@ -62,11 +68,15 @@ public class SimpleModelTests
     [Fact]
     public void NullableReferenceToNullableReferenceTest()
     {
-        var person1 = new Person1("Bob", 26);
-        var person2 = person1.Map();
+        var personWithOptionalName1 = new PersonWithOptionalName1("Bob", 26);
+        
+        var personWithOptionalName2 = personWithOptionalName1.Map();
 
-        Assert.Equal(person1.Name, person2.Name);
-        Assert.Equal(person1.Age, person2.Age);
+        using (new AssertionScope())
+        {
+            personWithOptionalName2.Name.Should().Be(personWithOptionalName1.Name);
+            personWithOptionalName2.Age.Should().Be(personWithOptionalName1.Age);
+        }
     }
 
     public record PersonWithOptionalName1(
@@ -81,17 +91,24 @@ public class SimpleModelTests
     public void NonNullableReferenceToNullableReferenceTest()
     {
         var person1 = new Person1("Bob", 26);
+        
         var person2 = person1.MapToOptionalName();
 
-        Assert.Equal(person1.Name, person2.Name);
-        Assert.Equal(person1.Age, person2.Age);
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Age.Should().Be(person1.Age);
+        }
     }
 
     [Fact]
     public void EnumShouldBeMappedToSupersetEnumTest()
     {
         var specificErrorCode = SpecificErrorCode.ErrorB;
+        
         var generalErrorCode = specificErrorCode.Map();
+
+        generalErrorCode.Should().Be(GeneralErrorCode.ErrorB);
     }
 
     public enum GeneralErrorCode
@@ -112,10 +129,14 @@ public class SimpleModelTests
     public void NullableReferenceToUnspecifiedReferenceTest()
     {
         var person1 = new PersonWithOptionalName1("Bob", 26);
+        
         var person2 = person1.MapToUnspecifiedName();
 
-        Assert.Equal(person1.Name, person2.Name);
-        Assert.Equal(person1.Age, person2.Age);
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Age.Should().Be(person1.Age);
+        }
     }
     
 #nullable disable
@@ -133,8 +154,11 @@ public class SimpleModelTests
 
         var obsoletePerson2 = person1.MapToObsolete();
 
-        Assert.Equal(person1.Name, obsoletePerson2.Name);
-        Assert.Equal(person1.Age, obsoletePerson2.Age);
+        using (new AssertionScope())
+        {
+            obsoletePerson2.Name.Should().Be(person1.Name);
+            obsoletePerson2.Age.Should().Be(person1.Age);
+        }
     }
     
     [Obsolete("Obsolete record for test purposes")]
