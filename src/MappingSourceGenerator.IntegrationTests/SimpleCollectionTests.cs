@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using FluentAssertions;
+using FluentAssertions.Execution;
 using MappingSourceGenerator.Markers;
 using Xunit;
 
@@ -11,10 +13,14 @@ public class SimpleCollectionTests
     public void PrimitiveTypeReadOnlyCollectionTest()
     {
         var person1 = new PersonWithEmails1("Bob", new[] {"bob@gmail.com", "bob123@gmail.com"});
+        
         var person2 = person1.Map();
 
-        Assert.Equal(person1.Name, person2.Name);
-        Assert.Equal(person1.Emails, person2.Emails);
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Emails.Should().BeEquivalentTo(person1.Emails);
+        }
     }
 
     public record PersonWithEmails1(
@@ -55,10 +61,14 @@ public class SimpleCollectionTests
         IEnumerable<PhoneType2> expectedPhoneTypes)
     {
         var personWithPhoneType1 = new PersonWithPhoneTypes1(name, sourcePhoneTypes);
+        
         var personWithPhoneType2 = personWithPhoneType1.Map();
 
-        Assert.Equal(personWithPhoneType1.Name, personWithPhoneType2.Name);
-        Assert.Equal(expectedPhoneTypes, personWithPhoneType2.PhoneTypes);
+        using (new AssertionScope())
+        {
+            personWithPhoneType2.Name.Should().Be(personWithPhoneType1.Name);
+            personWithPhoneType2.PhoneTypes.Should().BeEquivalentTo(expectedPhoneTypes);
+        }
     }
 
     public record PersonWithPhoneTypes1(
@@ -87,10 +97,14 @@ public class SimpleCollectionTests
     void MapToNullableReadonlyCollectionTest()
     {
         var person1 = new PersonWithEmails1("Bob", new[] {"bob@gmail.com", "bob123@gmail.com"});
+        
         var person2 = person1.MapToOptional();
 
-        Assert.Equal(person1.Name, person2.Name);
-        Assert.Equal(person1.Emails, person2.Emails);
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Emails.Should().BeEquivalentTo(person1.Emails);
+        }
     }
 
     public record PersonWithOptionalEmails2(

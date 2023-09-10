@@ -1,285 +1,237 @@
-﻿using MappingSourceGenerator.Markers;
+﻿using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace MappingSourceGenerator;
 
-public class Parser
+public class Parser : IParser
 {
-    private static readonly string GenerateMappingAttributeFullName = typeof(GenerateMappingAttribute).FullName;
+    private readonly Dictionary<INamespaceOrTypeSymbol, ImmutableArray<ISymbol>> _membersBySymbol = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<IMethodSymbol, ImmutableArray<IParameterSymbol>> _parametersByMethodSymbol = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<IMethodSymbol, Location> _locationByMethodSymbol = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<MappingMethod, (ITypeSymbol ClassType, ITypeSymbol ParameterType, ITypeSymbol ReturnType)> _symbolsByMappingMethod = new();
 
-    private readonly CancellationToken _cancellationToken;
-    private readonly Compilation _compilation;
-    private readonly Action<Diagnostic> _reportDiagnostic;
-    private readonly INamedTypeSymbol _genericEnumerable;
-
-    public Parser(Compilation compilation, Action<Diagnostic> reportDiagnostic, CancellationToken cancellationToken)
+    public ParseMethodResult GetMapperClasses(
+        ImmutableArray<IMethodSymbol> markedMethods,
+        CancellationToken cancellationToken)
     {
-        _compilation = compilation;
-        _cancellationToken = cancellationToken;
-        _reportDiagnostic = reportDiagnostic;
-        _genericEnumerable = compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T);
-    }
-
-    public static bool IsSyntaxTargetForGeneration(SyntaxNode node) =>
-        node is MethodDeclarationSyntax { AttributeLists.Count: > 0 };
-
-    public static ClassDeclarationSyntax? GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
-    {
-        var methodDeclarationSyntax = (MethodDeclarationSyntax)context.Node;
-
-        foreach (var attributeListSyntax in methodDeclarationSyntax.AttributeLists)
+        if (!markedMethods.Any())
         {
-            foreach (var attributeSyntax in attributeListSyntax.Attributes)
+            return new(
+                Array.Empty<MappingMethod>(),
+                Array.Empty<Diagnostic>());
+        }
+        
+        var mappingMethods = new List<MappingMethod>(markedMethods.Length);
+        var diagnostics = new List<Diagnostic>();
+        
+        var currentMappingClass = markedMethods.First().ContainingType!;
+        
+        foreach (var markedMethod in markedMethods)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var markedMethodParameters = GetParametersWithCaching(markedMethod);
+            var hasErrors = IsMethodSignatureValid(
+                markedMethod,
+                markedMethodParameters,
+                diagnostics);
+
+            if (hasErrors)
             {
-                if (context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
-                {
-                    continue;
-                }
-
-                var fullName = attributeSymbol.ContainingType.ToDisplayString();
-
-                if (fullName == GenerateMappingAttributeFullName)
-                {
-                    return methodDeclarationSyntax.Parent as ClassDeclarationSyntax;
-                }
+                continue;
             }
-        }
 
-        return null;
-    }
-
-    public IReadOnlyCollection<MappingClass> GetMapperClasses(IEnumerable<ClassDeclarationSyntax> classes)
-    {
-        var generateMappingAttribute = _compilation.GetBestTypeByMetadataName(GenerateMappingAttributeFullName);
-        if (generateMappingAttribute == null)
-        {
-            // nothing to do if this type isn't available
-            return Array.Empty<MappingClass>();
-        }
-
-        var mappingClasses = new List<MappingClass>();
-
-        foreach (var group in classes.GroupBy(x => x.SyntaxTree))
-        {
-            var semanticModel = _compilation.GetSemanticModel(group.Key);
-
-            foreach (var classDeclarationSyntax in group)
+            var nextMappingClass = markedMethod.ContainingType;
+            if (!SymbolEqualityComparer.Default.Equals(currentMappingClass, nextMappingClass))
             {
-                _cancellationToken.ThrowIfCancellationRequested();
-
-                var methodByDeclarationSyntax = new Dictionary<MethodDeclarationSyntax, IMethodSymbol>();
-                foreach (var memberDeclarationSyntax in classDeclarationSyntax.Members)
-                {
-                    var methodDeclarationSyntax = memberDeclarationSyntax as MethodDeclarationSyntax;
-                    if (methodDeclarationSyntax is null)
-                    {
-                        continue;
-                    }
-                    var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclarationSyntax, _cancellationToken) as IMethodSymbol;
-
-                    if (methodSymbol is null)
-                    {
-                        continue;
-                    }
-
-                    methodByDeclarationSyntax.Add(methodDeclarationSyntax, methodSymbol);
-                }
-
-                var allMappingMethods = new List<MappingMethod>();
-                foreach (var methodDeclarationSyntaxMethodSymbolPair in methodByDeclarationSyntax)
-                {
-                    var methodDeclarationSyntax = methodDeclarationSyntaxMethodSymbolPair.Key;
-                    var methodSymbol = methodDeclarationSyntaxMethodSymbolPair.Value;
-                    if (!HasGenerateMappingAttribute(methodSymbol))
-                    {
-                        continue;
-                    }
-
-                    var hasErrors = IsMethodSignatureValid(methodSymbol, methodDeclarationSyntax);
-
-                    if (hasErrors)
-                    {
-                        continue;
-                    }
-
-                    var parameter = methodSymbol.Parameters[0];
-                    var (mappingMethods, tryGetMappingMethodErrors) = TryGetMappingMethod(
-                        classDeclarationSyntax,
-                        methodSymbol.Name,
-                        parameter.Type,
-                        parameter.Name,
-                        parameter.Name,
-                        methodSymbol.ReturnType,
-                        methodDeclarationSyntax.Modifiers,
-                        methodByDeclarationSyntax);
-
-                    if (tryGetMappingMethodErrors is not null)
-                    {
-                        foreach (var (diagnosticDescriptor, argument0, argument1, argument2) in tryGetMappingMethodErrors)
-                        {
-                            ReportDiagnostic(
-                                diagnosticDescriptor,
-                                methodDeclarationSyntax.GetLocation(),
-                                argument0,
-                                argument1,
-                                argument2);
-                        }
-
-                        continue;
-                    }
-
-                    foreach (var mappingMethod in mappingMethods!)
-                    {
-                        if (!allMappingMethods.Any(_ =>
-                            _.Name == mappingMethod.Name
-                                && _.ParameterTypeFullName == mappingMethod.ParameterTypeFullName
-                                && _.ReturnTypeFullName == mappingMethod.ReturnTypeFullName))
-                        {
-                            allMappingMethods.Add(mappingMethod);
-                        }
-                    }
-                }
-
-                if (!allMappingMethods.Any())
-                {
-                    continue;
-                }
-
-                var (@namespace, usings) = GetNamespaceAndUsings(classDeclarationSyntax);
-
-                mappingClasses.Add(
-                    new(
-                        classDeclarationSyntax.Identifier.ToString() + classDeclarationSyntax.TypeParameterList,
-                        classDeclarationSyntax.Keyword.ValueText,
-                        classDeclarationSyntax.ConstraintClauses.ToString(),
-                        @namespace,
-                        usings,
-                        allMappingMethods));
+                currentMappingClass = nextMappingClass;
             }
+
+            var parameter = markedMethodParameters[0];
+            TryGetMappingMethod(
+                mappingMethods,
+                diagnostics,
+                markedMethod,
+                markedMethod.Name,
+                parameter.Type,
+                parameter.Name,
+                parameter.Name,
+                markedMethod.ReturnType,
+                markedMethod.DeclaredAccessibility,
+                true,
+                currentMappingClass);
         }
 
-        return mappingClasses;
+        _membersBySymbol.Clear();
+        _parametersByMethodSymbol.Clear();
+        _parametersByMethodSymbol.Clear();
+        _symbolsByMappingMethod.Clear();
+        
+        return new(
+            mappingMethods,
+            diagnostics);
     }
 
     private bool IsMethodSignatureValid(
-        IMethodSymbol methodSymbol,
-        MethodDeclarationSyntax methodDeclarationSyntax)
+        IMethodSymbol method,
+        ImmutableArray<IParameterSymbol> methodParameters,
+        ICollection<Diagnostic> diagnostics)
     {
         var hasErrors = false;
-        if (!methodSymbol.IsPartialDefinition)
+        if (!method.IsPartialDefinition)
         {
-            ReportDiagnostic(DiagnosticDescriptors.MappingMethodShouldBePartial, methodDeclarationSyntax.GetLocation());
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodShouldBePartial, GetLocationWithCaching(method)));
             hasErrors = true;
         }
 
-        if (methodSymbol.Parameters.Length != 1)
+        if (methodParameters.Length != 1)
         {
-            ReportDiagnostic(DiagnosticDescriptors.MappingMethodShouldHaveSingleParameter, methodDeclarationSyntax.GetLocation());
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodShouldHaveSingleParameter, GetLocationWithCaching(method)));
             hasErrors = true;
         }
 
-        if (methodSymbol.Parameters[0].NullableAnnotation == NullableAnnotation.Annotated)
+        if (methodParameters[0].NullableAnnotation == NullableAnnotation.Annotated)
         {
-            ReportDiagnostic(DiagnosticDescriptors.MappingMethodParameterShouldntBeNullable, methodDeclarationSyntax.GetLocation());
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodParameterShouldNotBeNullable, GetLocationWithCaching(method)));
             hasErrors = true;
         }
 
-        if (methodSymbol.ReturnsVoid)
+        if (method.ReturnsVoid)
         {
-            ReportDiagnostic(DiagnosticDescriptors.MappingMethodShouldntReturnVoid, methodDeclarationSyntax.GetLocation());
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodShouldNotReturnVoid, GetLocationWithCaching(method)));
             hasErrors = true;
         }
 
-        if (methodSymbol.TypeParameters.Length != 0)
+        if (method.IsGenericMethod)
         {
-            ReportDiagnostic(DiagnosticDescriptors.MappingMethodShouldntBeGeneric, methodDeclarationSyntax.GetLocation());
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodShouldNotBeGeneric, GetLocationWithCaching(method)));
             hasErrors = true;
         }
 
-        if (!methodSymbol.IsExtensionMethod)
+        if (!method.IsExtensionMethod)
         {
-            ReportDiagnostic(DiagnosticDescriptors.MappingMethodShouldBeExtension, methodDeclarationSyntax.GetLocation());
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodShouldBeExtension, GetLocationWithCaching(method)));
+            hasErrors = true;
+        }
+
+        if (method.ContainingType.ContainingSymbol is not INamespaceSymbol)
+        {
+            diagnostics.Add(
+                Diagnostic.Create(DiagnosticDescriptors.MappingMethodContainingClassShouldNotBeNested, GetLocationWithCaching(method)));
             hasErrors = true;
         }
 
         return hasErrors;
     }
 
-    private (IReadOnlyCollection<MappingMethod>? MappingMethods, IReadOnlyCollection<TryGetMappingMethodError>? TryGetMappingMethodErrors) TryGetMappingMethod(
-        ClassDeclarationSyntax classDeclarationSyntax,
+    private bool TryGetMappingMethod(
+        ICollection<MappingMethod> mappingMethods,
+        ICollection<Diagnostic> diagnostics,
+        IMethodSymbol markedMethod,
         string methodName,
         ITypeSymbol parameterType,
         string parameterName,
         string parameterSubPath,
         ITypeSymbol returnType,
-        SyntaxTokenList modifiers,
-        IDictionary<MethodDeclarationSyntax, IMethodSymbol> methodByDeclarationSyntax)
+        Accessibility accessibility,
+        bool isPartial,
+        INamedTypeSymbol mappingClass)
     {
         if (returnType.TypeKind == TypeKind.Enum && parameterType.TypeKind == TypeKind.Enum)
         {
-            var (mappingMethod, error) = TryGetEnumMappingMethod(
+            return TryGetEnumMappingMethod(
+                mappingMethods,
+                diagnostics,
+                markedMethod,
                 methodName,
                 parameterType,
                 parameterName,
                 parameterSubPath,
                 returnType,
-                modifiers);
-
-            return (mappingMethod is null ? null : new[] { mappingMethod },
-                error is null ? null : new [] { error.Value });
+                accessibility,
+                isPartial,
+                mappingClass);
         }
 
-        var errors = new List<TryGetMappingMethodError>();
-        if (returnType.TypeKind is not (TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Array))
+        var hasErrors = false;
+        if (returnType.TypeKind is not (TypeKind.Class or TypeKind.Struct))
         {
-            errors.Add(new(DiagnosticDescriptors.MappingMethodReturnTypeNotSupported, returnType.ToDisplayString()));
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.MappingMethodReturnTypeNotSupported, 
+                    GetLocationWithCaching(markedMethod),
+                    returnType.ToDisplayString()));
+            hasErrors = true;
         }
 
-        if (parameterType.TypeKind is not (TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Array))
+        if (parameterType.TypeKind is not (TypeKind.Class or TypeKind.Struct ))
         {
-            errors.Add(new(DiagnosticDescriptors.MappingMethodParameterTypeNotSupported, parameterType.ToDisplayString()));
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.MappingMethodParameterTypeNotSupported, 
+                    GetLocationWithCaching(markedMethod),
+                    parameterType.ToDisplayString()));
+            hasErrors = true;
         }
 
-        if (errors.Any())
+        if (hasErrors)
         {
-            return (default, errors);
+            return false;
         }
 
         return TryGetObjectMappingMethod(
-            classDeclarationSyntax,
+            mappingMethods,
+            diagnostics,
+            markedMethod,
             methodName,
             parameterType,
             parameterName,
             parameterSubPath,
             returnType,
-            modifiers,
-            methodByDeclarationSyntax);
+            accessibility,
+            isPartial,
+            mappingClass);
     }
 
-    private (IReadOnlyCollection<MappingMethod>? MappingMethods, IReadOnlyCollection<TryGetMappingMethodError>? Error)
-        TryGetObjectMappingMethod(
-            ClassDeclarationSyntax classDeclarationSyntax,
-            string methodName,
-            ITypeSymbol parameterType,
-            string parameterName,
-            string parameterSubPath,
-            ITypeSymbol returnType,
-            SyntaxTokenList modifiers,
-            IDictionary<MethodDeclarationSyntax, IMethodSymbol> methodByDeclarationSyntax)
+    private bool TryGetObjectMappingMethod(
+        ICollection<MappingMethod> mappingMethods,
+        ICollection<Diagnostic> diagnostics,
+        IMethodSymbol markedMethod,
+        string methodName,
+        ITypeSymbol parameterType,
+        string parameterName,
+        string parameterSubPath,
+        ITypeSymbol returnType,
+        Accessibility accessibility,
+        bool isPartial,
+        INamedTypeSymbol mappingClass)
     {
-        var returnTypeMembers = returnType.GetMembers();
+        var returnTypeMembers = GetMembersWithCaching(returnType);
         var returnTypeConstructor = default(IMethodSymbol);
+        var returnTypeConstructorParameters = default(ImmutableArray<IParameterSymbol>);
         var multipleConstructorsArePresent = false;
 
         foreach (var returnTypeMember in returnTypeMembers)
         {
-            if (returnTypeMember.DeclaredAccessibility == Accessibility.Public
-                && returnTypeMember is IMethodSymbol { MethodKind: MethodKind.Constructor } returnTypeMethod
-                && returnTypeMethod.Parameters.Length != 0
-                && (!returnType.IsRecord
-                    || returnTypeMethod.Parameters.Length != 1
-                    || !SymbolEqualityComparer.Default.Equals(returnTypeMethod.Parameters[0].Type, returnType)))
+            if (returnTypeMember.DeclaredAccessibility != Accessibility.Public
+                || returnTypeMember is not IMethodSymbol { MethodKind: MethodKind.Constructor } returnTypeMethod)
+            {
+                continue;
+            }
+
+            var returnTypeMethodParameters = GetParametersWithCaching(returnTypeMethod);
+            
+            if (returnTypeMethodParameters.Length != 0 // non-default constructor
+                && (!returnType.IsRecord // main constructor of a record
+                    || returnTypeMethodParameters.Length != 1
+                    || !SymbolEqualityComparer.Default.Equals(returnTypeMethodParameters[0].Type, returnType)))
             {
                 if (returnTypeConstructor is not null)
                 {
@@ -287,41 +239,35 @@ public class Parser
                 }
 
                 returnTypeConstructor = returnTypeMethod;
+                returnTypeConstructorParameters = returnTypeMethodParameters;
             }
         }
 
         if (returnTypeConstructor is null)
         {
-            return (default,
-                new TryGetMappingMethodError[]
-                {
-                    new(
-                        DiagnosticDescriptors.MappingMethodReturnTypeSuitableConstructorNotFound,
-                        returnType.ToDisplayString())
-                });
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.MappingMethodReturnTypeSuitableConstructorNotFound,
+                    GetLocationWithCaching(markedMethod),
+                    returnType.ToDisplayString()));
+            return false;
         }
 
         if (multipleConstructorsArePresent)
         {
-            return (default,
-                new TryGetMappingMethodError[]
-                {
-                    new(
-                        DiagnosticDescriptors.MappingMethodReturnTypeContainsMultipleSuitableConstructors,
-                        returnType.ToDisplayString())
-                });
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.MappingMethodReturnTypeContainsMultipleSuitableConstructors,
+                    GetLocationWithCaching(markedMethod),
+                    returnType.ToDisplayString()));
+            return false;
         }
+        var parameterTypeMembers = GetMembersWithCaching(parameterType);
+        var mappingProperties = ImmutableArray.CreateBuilder<MappingProperty>(returnTypeConstructorParameters.Length);
 
-        var mappingMethods = new List<MappingMethod>();
-
-        var parameterTypeMembers = parameterType.GetMembers();
-        var mappingProperties = new List<MappingProperty>();
-
-        foreach (var returnTypeConstructorParameter in returnTypeConstructor.Parameters)
+        foreach (var returnTypeConstructorParameter in returnTypeConstructorParameters)
         {
-            var mappingProperty = default(MappingProperty);
-            var dependentMappingMethods = default(IReadOnlyCollection<MappingMethod>);
-            var tryGetMappingMethodErrors = default(IReadOnlyCollection<TryGetMappingMethodError>?);
+            var correspondingParameterTypeProperty = default(IPropertySymbol?);
             foreach (var parameterTypeMember in parameterTypeMembers)
             {
                 if (parameterTypeMember is not IPropertySymbol parameterTypeProperty
@@ -332,97 +278,162 @@ public class Parser
                     continue;
                 }
 
-                (mappingProperty, dependentMappingMethods, tryGetMappingMethodErrors) = TryGetMappingProperty(
-                    classDeclarationSyntax,
-                    methodName,
-                    parameterSubPath,
-                    parameterTypeProperty.Name,
-                    returnTypeConstructorParameter.Type,
-                    parameterTypeProperty.Type,
-                    modifiers,
-                    methodByDeclarationSyntax);
-
-                if (mappingProperty is not null)
-                {
-                    break;
-                }
+                correspondingParameterTypeProperty = parameterTypeProperty;
+                break;
             }
 
-            if (mappingProperty is null)
+            if (correspondingParameterTypeProperty is null)
             {
-                if (tryGetMappingMethodErrors is null)
-                {
-                    tryGetMappingMethodErrors = new[]
-                    {
-                        new TryGetMappingMethodError(
-                            DiagnosticDescriptors.ConstructorMappingNotFound,
-                            returnTypeConstructorParameter.Name,
-                            returnType.ToDisplayString(),
-                            parameterSubPath),
-                    };
-                }
-
-                return (default,
-                    tryGetMappingMethodErrors);
+                diagnostics.Add(
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.ConstructorMappingNotFound,
+                        GetLocationWithCaching(markedMethod),
+                        returnTypeConstructorParameter.Name,
+                        returnType.ToDisplayString(),
+                        parameterType.ToDisplayString()));
+                continue;
             }
 
-            mappingProperties.Add(mappingProperty);
+            var mappingProperty = TryGetMappingProperty(
+                mappingMethods,
+                diagnostics,
+                markedMethod,
+                methodName,
+                parameterSubPath,
+                correspondingParameterTypeProperty.Name,
+                returnTypeConstructorParameter.Type,
+                correspondingParameterTypeProperty.Type,
+                accessibility,
+                isPartial,
+                mappingClass);
 
-            if (dependentMappingMethods is not null)
+            if (mappingProperty is not null)
             {
-                mappingMethods.AddRange(dependentMappingMethods);
+                mappingProperties.Add(mappingProperty);
             }
         }
 
-        mappingMethods.Insert(
-            0,
-            new(
-                methodName,
-                modifiers.ToString(),
-                parameterType.ToDisplayString(),
-                parameterName,
-                returnType.ToDisplayString(),
-                MappingMethodKind.Object,
-                mappingProperties,
-                default));
+        if (mappingProperties.Count != returnTypeConstructorParameters.Length)
+        {
+            return false;
+        }
 
-        return (mappingMethods, default);
+        var mappingMethod = new MappingMethod(
+            mappingClass.Name,
+            GetContainingNames(mappingClass),
+            methodName,
+            accessibility,
+            isPartial,
+            parameterType.Name,
+            GetContainingNames(parameterType),
+            parameterName,
+            returnType.Name,
+            GetContainingNames(returnType),
+            MappingMethodKind.Object,
+            mappingProperties,
+            default);
+        _symbolsByMappingMethod.Add(mappingMethod, (mappingClass, parameterType, returnType));
+        mappingMethods.Add(
+            mappingMethod);
+
+        return true;
     }
 
-    private (MappingProperty?, IReadOnlyCollection<MappingMethod>?, IReadOnlyCollection<TryGetMappingMethodError>?) TryGetMappingProperty(
-        ClassDeclarationSyntax classDeclarationSyntax,
+    private MappingProperty? TryGetMappingProperty(
+        ICollection<MappingMethod> mappingMethods,
+        ICollection<Diagnostic> diagnostics,
+        IMethodSymbol markedMethod,
         string methodName,
         string parameterSubPath,
         string propertyName,
         ITypeSymbol targetType,
         ITypeSymbol sourceType,
-        SyntaxTokenList modifiers,
-        IDictionary<MethodDeclarationSyntax, IMethodSymbol> methodByDeclarationSyntax)
+        Accessibility accessibility,
+        bool isPartial,
+        INamedTypeSymbol mappingClass)
     {
-        var sourceTypeDisplayString = sourceType.ToDisplayString();
-        var targetTypeDisplayString = targetType.ToDisplayString();
-
-        // Substring is used to remove "?" symbol. ITypeSymbol.OriginalDefinition doesn't work for generic types e.g. collections
-        if (targetTypeDisplayString == sourceTypeDisplayString
-            || targetType.NullableAnnotation == NullableAnnotation.Annotated && targetTypeDisplayString.Substring(0, targetTypeDisplayString.Length - 1) == sourceTypeDisplayString
-            || targetType.NullableAnnotation == NullableAnnotation.None && sourceType.NullableAnnotation == NullableAnnotation.Annotated && targetTypeDisplayString == sourceTypeDisplayString.Substring(0, sourceTypeDisplayString.Length - 1))
+        if (IsDeFactoNullable(sourceType) && !IsDeFactoNullable(targetType))
         {
-            return (new(propertyName, MappingPropertyKind.Direct), default, default);
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.NullableToNonNullableMapping,
+                    GetLocationWithCaching(markedMethod),
+                    propertyName,
+                    sourceType.ToDisplayString(),
+                    targetType.ToDisplayString(),
+                    parameterSubPath));
+            return default;
         }
-
-        var shouldUseNullForgivingOperator = sourceType.NullableAnnotation == NullableAnnotation.Annotated;
 
         var targetItemType = TryGetEnumerableItem(targetType);
         var sourceItemType = TryGetEnumerableItem(sourceType);
+        
+        if (sourceItemType?.NullableAnnotation == NullableAnnotation.Annotated)
+        {
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.EnumerableWithNullableItemMappingNotSupported,
+                    GetLocationWithCaching(markedMethod),
+                    propertyName,
+                    sourceType.ToDisplayString(),
+                    parameterSubPath));
+            return default;
+        }
+
+        if (SymbolEqualityComparer.Default.Equals(targetType, sourceType))
+        {
+            return new(propertyName, MappingPropertyKind.Direct);
+        }
+        
+        var shouldUseNullConditionalOperator = sourceType.NullableAnnotation == NullableAnnotation.Annotated;
+
+        if (MappingMethodExists(this, GetMembersWithCaching(mappingClass), methodName, targetType, sourceType))
+        {
+            return new(
+                propertyName,
+                MappingPropertyKind.SingleItemMapping,
+                methodName,
+                shouldUseNullConditionalOperator);
+        }
 
         // only one of types is enumerable
-        if (targetItemType is null ^ sourceItemType is null)
+        if (sourceItemType is not null && targetItemType is null)
         {
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.EnumerableToNonEnumerableMappingNotSupported,
+                    GetLocationWithCaching(markedMethod),
+                    propertyName,
+                    sourceType.ToDisplayString(),
+                    targetType.ToDisplayString(),
+                    parameterSubPath));
+            return default;
+        }
+        
+        if (sourceItemType is null && targetItemType is not null)
+        {
+            diagnostics.Add(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.NonEnumerableToEnumerableMappingNotSupported,
+                    GetLocationWithCaching(markedMethod),
+                    propertyName,
+                    sourceType.ToDisplayString(),
+                    targetType.ToDisplayString(),
+                    parameterSubPath));
             return default;
         }
 
         if (targetItemType is not null)
         {
+            if (MappingMethodExists(this, GetMembersWithCaching(mappingClass), methodName, targetItemType, sourceItemType!))
+            {
+                return new(
+                    propertyName,
+                    MappingPropertyKind.EnumerableMapping,
+                    methodName,
+                    shouldUseNullConditionalOperator);
+            }
+            
             targetType = targetItemType;
             sourceType = sourceItemType!;
         }
@@ -430,7 +441,6 @@ public class Parser
         if (sourceType.NullableAnnotation == NullableAnnotation.Annotated)
         {
             sourceType = sourceType.OriginalDefinition;
-            shouldUseNullForgivingOperator = true;
         }
 
         if (targetType.NullableAnnotation == NullableAnnotation.Annotated)
@@ -438,91 +448,144 @@ public class Parser
             targetType = targetType.OriginalDefinition;
         }
 
-        var matchingExistingMappingMethod = (MethodDeclarationSyntax?)classDeclarationSyntax.Members
-            .FirstOrDefault(memberSyntaxDeclaration => memberSyntaxDeclaration is MethodDeclarationSyntax methodDeclarationSyntax
-                && methodByDeclarationSyntax.TryGetValue(methodDeclarationSyntax, out var methodSymbol)
-                && methodSymbol.IsExtensionMethod
-                && methodSymbol.Parameters.Length == 1
-                && SymbolEqualityComparer.Default.Equals(methodSymbol.ReturnType, targetType)
-                && SymbolEqualityComparer.Default.Equals(methodSymbol.Parameters[0].Type, sourceType));
-
-        if (matchingExistingMappingMethod is not null)
+        if (MappingMethodAlreadyGenerated(_symbolsByMappingMethod, mappingMethods, methodName, mappingClass, targetType, sourceType))
         {
-            return (new(
-                    propertyName,
-                    targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
-                    methodByDeclarationSyntax[matchingExistingMappingMethod].Name,
-                    shouldUseNullForgivingOperator),
-                default,
-                default);
-        }
-
-        var parameterName = string.Concat(sourceType.Name[0].ToString().ToLower(), sourceType.Name.Substring(1));
-
-        var partialModifier = modifiers.FirstOrDefault(_ => _.Text == "partial");
-        if (partialModifier != default)
-        {
-            modifiers = modifiers.Remove(partialModifier);
-        }
-
-        var (mappingMethods, tryGetMappingMethodError) = TryGetMappingMethod(
-            classDeclarationSyntax,
-            methodName,
-            sourceType,
-            parameterName,
-            $"{parameterSubPath}.{propertyName}",
-            targetType,
-            modifiers,
-            methodByDeclarationSyntax);
-
-        if (mappingMethods is null)
-        {
-            return (default, default, tryGetMappingMethodError);
-        }
-
-        return (new(
+            return new(
                 propertyName,
                 targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
                 methodName,
-                shouldUseNullForgivingOperator),
+                shouldUseNullConditionalOperator);
+        }
+
+        var isMappingFound = TryGetMappingMethod(
             mappingMethods,
-            default);
+            diagnostics,
+            markedMethod,
+            methodName,
+            sourceType,
+            sourceType.Name,
+            $"{parameterSubPath}.{propertyName}",
+            targetType,
+            accessibility,
+            false,
+            mappingClass);
+
+        if (!isMappingFound)
+        {
+            return null;
+        }
+        
+        return new(
+            propertyName,
+            targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
+            methodName,
+            shouldUseNullConditionalOperator);
+
+        static bool IsDeFactoNullable(ITypeSymbol type)
+            => type.NullableAnnotation is NullableAnnotation.Annotated or NullableAnnotation.None;
+
+        static bool MappingMethodExists(
+            Parser parser,
+            ImmutableArray<ISymbol> mappingClassMembers,
+            string methodName,
+            ITypeSymbol targetType,
+            ITypeSymbol sourceType)
+        {
+            // Enumerable.Any() transformed into foreach to avoid closure allocations
+            // (around 6% of Parser.GetMapperClasses allocations at the moment of optimization)
+            foreach (var member in mappingClassMembers)
+            {
+                if (member is not IMethodSymbol { IsExtensionMethod: true } method)
+                {
+                    continue;
+                }
+
+                var methodParameters = parser.GetParametersWithCaching(method);
+
+                var isMethodMatching = methodParameters.Length == 1
+                    && method.Name == methodName
+                    && SymbolEqualityComparer.Default.Equals(method.ReturnType, targetType)
+                    && SymbolEqualityComparer.Default.Equals(methodParameters[0].Type, sourceType);
+
+                if (isMethodMatching)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static bool MappingMethodAlreadyGenerated(
+            IReadOnlyDictionary<MappingMethod, (ITypeSymbol ClassType, ITypeSymbol ParameterType, ITypeSymbol ReturnType)> symbolsByMappingMethod,
+            IEnumerable<MappingMethod> mappingMethods,
+            string methodName,
+            ITypeSymbol containingType,
+            ITypeSymbol targetType,
+            ITypeSymbol sourceType)
+        {
+            // Enumerable.Any() transformed into foreach to avoid closure allocations
+            // (around 6% of Parser.GetMapperClasses allocations at the moment of optimization)
+            foreach (var mappingMethod in mappingMethods)
+            {
+                if (mappingMethod.Name != methodName)
+                {
+                    continue;
+                }
+                
+                var (classType, parameterType, returnType) = symbolsByMappingMethod[mappingMethod];
+
+                var isMethodMatching = SymbolEqualityComparer.Default.Equals(classType, containingType)
+                    && SymbolEqualityComparer.Default.Equals(sourceType, parameterType)
+                    && SymbolEqualityComparer.Default.Equals(targetType, returnType);
+
+                if (isMethodMatching)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     private ITypeSymbol? TryGetEnumerableItem(ITypeSymbol typeSymbol)
     {
-        if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
+        if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
         {
-            return default;
+            return arrayTypeSymbol.ElementType;
         }
-
-        if (SymbolEqualityComparer.Default.Equals(namedTypeSymbol.OriginalDefinition, _genericEnumerable))
+        
+        if (typeSymbol.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T
+            or SpecialType.System_Collections_Generic_ICollection_T
+            or SpecialType.System_Collections_Generic_IList_T
+            or SpecialType.System_Collections_Generic_IReadOnlyCollection_T
+            or SpecialType.System_Collections_Generic_IReadOnlyList_T)
         {
-            return namedTypeSymbol.TypeArguments[0];
-        }
-
-        foreach (var @interface in namedTypeSymbol.AllInterfaces)
-        {
-            if (SymbolEqualityComparer.Default.Equals(@interface.OriginalDefinition, _genericEnumerable))
-            {
-                return @interface.TypeArguments[0];
-            }
+            return ((INamedTypeSymbol)typeSymbol).TypeArguments[0];
         }
 
         return default;
     }
 
-    private (MappingMethod? MappingMethod, TryGetMappingMethodError? Error) TryGetEnumMappingMethod(
+    private bool TryGetEnumMappingMethod(
+        ICollection<MappingMethod> mappingMethods,
+        ICollection<Diagnostic> diagnostics,
+        IMethodSymbol markedMethod,
         string methodName,
         ITypeSymbol parameterType,
         string parameterName,
         string parameterSubPath,
         ITypeSymbol returnType,
-        SyntaxTokenList modifiers)
+        Accessibility accessibility,
+        bool isPartial,
+        INamedTypeSymbol mappingClass)
     {
-        var returnTypeMembers = returnType.GetMembers();
-        var parameterTypeMembers = parameterType.GetMembers();
-        var enumValues = new List<string>();
+        var returnTypeMembers = GetMembersWithCaching(returnType);
+        var parameterTypeMembers = GetMembersWithCaching(parameterType);
+        // enum members consist of a default constructor and constants, so we need subtract 1 to get count of constants
+        var enumValuesCount = parameterTypeMembers.Length - 1; 
+        var enumValues = new List<string>(enumValuesCount);
         foreach (var parameterTypeMember in parameterTypeMembers)
         {
             if (!IsEnumValueConstant(parameterType, parameterTypeMember))
@@ -541,33 +604,48 @@ public class Parser
                 if (returnTypeMember.Name == parameterTypeMember.Name)
                 {
                     foundMapping = true;
+                    break;
                 }
             }
 
             if (!foundMapping)
             {
-                return (
-                    default,
-                    new(
+                diagnostics.Add(
+                    Diagnostic.Create(
                         DiagnosticDescriptors.EnumMappingNotFound,
+                        GetLocationWithCaching(markedMethod),
                         parameterTypeMember.Name,
                         returnType.ToDisplayString(),
                         parameterSubPath));
+                continue;
             }
 
             enumValues.Add(parameterTypeMember.Name);
         }
 
+        if (enumValues.Count != enumValuesCount)
+        {
+            return false;
+        }
+
         var mappingMethod = new MappingMethod(
+            mappingClass.Name,
+            GetContainingNames(mappingClass),
             methodName,
-            modifiers.ToString(),
-            parameterType.ToDisplayString(),
+            accessibility,
+            isPartial,
+            parameterType.Name,
+            GetContainingNames(parameterType),
             parameterName,
-            returnType.ToDisplayString(),
+            returnType.Name,
+            GetContainingNames(returnType),
             MappingMethodKind.Enum,
             default,
             enumValues);
-        return (mappingMethod, default);
+        _symbolsByMappingMethod.Add(mappingMethod, (mappingClass, parameterType, returnType));
+        mappingMethods.Add(
+            mappingMethod);
+        return true;
 
         static bool IsEnumValueConstant(
             ITypeSymbol declaringType,
@@ -576,56 +654,59 @@ public class Parser
                 && member is IFieldSymbol field && SymbolEqualityComparer.Default.Equals(field.Type, declaringType);
     }
 
-    private bool HasGenerateMappingAttribute(IMethodSymbol methodSymbol)
+    private IReadOnlyList<string> GetContainingNames(ISymbol symbol)
     {
-        var attributeDataList = methodSymbol.GetAttributes();
+        return GetContainingNamesRecursive(symbol, 0);
 
-        foreach (var attributeData in attributeDataList)
+        static string[] GetContainingNamesRecursive(
+            ISymbol symbol,
+            int count)
         {
-            if (attributeData.AttributeClass is not null
-                && attributeData.AttributeClass.ToDisplayString() == GenerateMappingAttributeFullName)
+            if (symbol.ContainingSymbol is INamespaceSymbol { IsGlobalNamespace: true })
             {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private (string Namespace, string Usings) GetNamespaceAndUsings(ClassDeclarationSyntax classDeclarationSyntax)
-    {
-        var namespaces = new List<string>();
-        var usings = new SyntaxList<UsingDirectiveSyntax>();
-
-        var parentSyntax = classDeclarationSyntax.Parent;
-        while (parentSyntax is not null)
-        {
-            if (parentSyntax is BaseNamespaceDeclarationSyntax baseNamespaceDeclarationSyntax)
-            {
-                namespaces.Add(baseNamespaceDeclarationSyntax.Name.ToString());
-                usings = usings.AddRange(baseNamespaceDeclarationSyntax.Usings);
-            } else if (parentSyntax is CompilationUnitSyntax compilationUnitSyntax)
-            {
-                usings = usings.AddRange(compilationUnitSyntax.Usings);
+                return new string[count];
             }
 
-            parentSyntax = parentSyntax.Parent;
+            var containingNames = GetContainingNamesRecursive(
+                symbol.ContainingSymbol,
+                count + 1);
+
+            containingNames[containingNames.Length - count - 1] = symbol.ContainingSymbol.Name;
+
+            return containingNames;
+        }
+    }
+
+    private ImmutableArray<ISymbol> GetMembersWithCaching(INamespaceOrTypeSymbol namespaceOrType)
+    {
+        if (!_membersBySymbol.TryGetValue(namespaceOrType, out var members))
+        {
+            members = namespaceOrType.GetMembers();
+            _membersBySymbol.Add(namespaceOrType, members);
         }
 
-        return (string.Join(".", namespaces), usings.ToFullString());
+        return members;
     }
 
-    private void ReportDiagnostic(
-        DiagnosticDescriptor diagnosticDescriptor,
-        Location? location,
-        params object?[]? messageArgs)
+    private ImmutableArray<IParameterSymbol> GetParametersWithCaching(IMethodSymbol methodSymbol)
     {
-        _reportDiagnostic(Diagnostic.Create(diagnosticDescriptor, location, messageArgs));
+        if (!_parametersByMethodSymbol.TryGetValue(methodSymbol, out var parameters))
+        {
+            parameters = methodSymbol.Parameters;
+            _parametersByMethodSymbol.Add(methodSymbol, parameters);
+        }
+
+        return parameters;
     }
 
-    private record struct TryGetMappingMethodError(
-        DiagnosticDescriptor DiagnosticDescriptor,
-        string? Argument0 = default,
-        string? Argument1 = default,
-        string? Argument2 = default);
+    private Location GetLocationWithCaching(IMethodSymbol method)
+    {
+        if (!_locationByMethodSymbol.TryGetValue(method, out var location))
+        {
+            location = method.DeclaringSyntaxReferences.First().GetSyntax().GetLocation();
+            _locationByMethodSymbol.Add(method, location);
+        }
+
+        return location;
+    }
 }

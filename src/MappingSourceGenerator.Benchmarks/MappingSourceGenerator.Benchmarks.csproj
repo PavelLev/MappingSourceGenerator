@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <OutputType>exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BenchmarkDotNet" Version="0.13.5" />
+        <PackageReference Include="DiffPlex" Version="1.7.1" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\MappingSourceGenerator.Markers\MappingSourceGenerator.Markers.csproj" />
+        <ProjectReference Include="..\MappingSourceGenerator\MappingSourceGenerator.csproj" />
+    </ItemGroup>
+
+</Project>
