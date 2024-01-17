@@ -384,6 +384,14 @@ public class Parser : IParser
         {
             return new(propertyName, MappingPropertyKind.Direct);
         }
+
+        if (sourceType.IsValueType
+            && targetType is { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T }
+                and INamedTypeSymbol namedTargetType
+            && SymbolEqualityComparer.Default.Equals(namedTargetType.TypeArguments[0], sourceType))
+        {
+            return new(propertyName, MappingPropertyKind.Direct);
+        }
         
         var shouldUseNullConditionalOperator = sourceType.NullableAnnotation == NullableAnnotation.Annotated;
 
@@ -438,15 +446,8 @@ public class Parser : IParser
             sourceType = sourceItemType!;
         }
 
-        if (sourceType.NullableAnnotation == NullableAnnotation.Annotated)
-        {
-            sourceType = sourceType.OriginalDefinition;
-        }
-
-        if (targetType.NullableAnnotation == NullableAnnotation.Annotated)
-        {
-            targetType = targetType.OriginalDefinition;
-        }
+        RemoveNullability(ref sourceType);
+        RemoveNullability(ref targetType);
 
         if (MappingMethodAlreadyGenerated(_symbolsByMappingMethod, mappingMethods, methodName, mappingClass, targetType, sourceType))
         {
@@ -483,6 +484,22 @@ public class Parser : IParser
 
         static bool IsDeFactoNullable(ITypeSymbol type)
             => type.NullableAnnotation is NullableAnnotation.Annotated or NullableAnnotation.None;
+
+        static void RemoveNullability(ref ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+            {
+                if (typeSymbol is { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } 
+                    and INamedTypeSymbol namedTypeSymbol)
+                {
+                    typeSymbol = namedTypeSymbol.TypeArguments[0];
+                }
+                else
+                {
+                    typeSymbol = typeSymbol.OriginalDefinition;
+                }
+            }
+        }
 
         static bool MappingMethodExists(
             Parser parser,

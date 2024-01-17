@@ -64,6 +64,23 @@ public class SimpleModelTests
         Ios,
         Other,
     }
+    
+    [Theory]
+    [InlineData("Rob", PhoneType1.Android, PhoneType2.Android)]
+    [InlineData("Bob", PhoneType1.Ios, PhoneType2.Ios)]
+    [InlineData("Eugene", PhoneType1.Other, PhoneType2.Other)]
+    public void NullableEnumToNonNullableEnumTest(string name, PhoneType1 sourcePhoneType, PhoneType2 expectedPhoneType)
+    {
+        var personWithPhoneType1 = new PersonWithPhoneType1(name, sourcePhoneType);
+        
+        var personWithPhoneType2 = personWithPhoneType1.MapToOptionalPhoneType();
+
+        personWithPhoneType2.PhoneType.Should().Be(expectedPhoneType);
+    }
+
+    public record PersonWithOptionalPhoneType2(
+        string Name,
+        PhoneType2? PhoneType);
 
     [Fact]
     public void NullableReferenceToNullableReferenceTest()
@@ -100,6 +117,24 @@ public class SimpleModelTests
             person2.Age.Should().Be(person1.Age);
         }
     }
+
+    [Fact]
+    public void NonNullableValueToNullableValueTest()
+    {
+        var person1 = new Person1("Bob", 26);
+        
+        var person2 = person1.MapToOptionalAge();
+
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Age.Should().Be(person1.Age);
+        }
+    }
+
+    public record PersonWithOptionalAge2(
+        string Name,
+        int? Age);
 
     [Fact]
     public void EnumShouldBeMappedToSupersetEnumTest()
@@ -176,10 +211,16 @@ public static partial class SimpleModelTestsMapper
     public static partial SimpleModelTests.PersonWithPhoneType2 Map(this SimpleModelTests.PersonWithPhoneType1 personWithPhoneType1);
 
     [GenerateMapping]
+    public static partial SimpleModelTests.PersonWithOptionalPhoneType2 MapToOptionalPhoneType(this SimpleModelTests.PersonWithPhoneType1 personWithPhoneType1);
+
+    [GenerateMapping]
     public static partial SimpleModelTests.PersonWithOptionalName2 Map(this SimpleModelTests.PersonWithOptionalName1 personWithOptionalName1);
 
     [GenerateMapping]
     public static partial SimpleModelTests.PersonWithOptionalName2 MapToOptionalName(this SimpleModelTests.Person1 person1);
+
+    [GenerateMapping]
+    public static partial SimpleModelTests.PersonWithOptionalAge2 MapToOptionalAge(this SimpleModelTests.Person1 person1);
 
     [GenerateMapping]
     public static partial SimpleModelTests.GeneralErrorCode Map(this SimpleModelTests.SpecificErrorCode specificErrorCode);
