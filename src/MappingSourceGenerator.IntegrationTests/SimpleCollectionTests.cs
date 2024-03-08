@@ -30,6 +30,28 @@ public class SimpleCollectionTests
     public record PersonWithEmails2(
         string Name,
         IReadOnlyCollection<string> Emails);
+    
+    [Fact]
+    public void PrimitiveTypeListTest()
+    {
+        var person1 = new PersonWithEmailList1("Bob", ["bob@gmail.com", "bob123@gmail.com"]);
+        
+        var person2 = person1.Map();
+
+        using (new AssertionScope())
+        {
+            person2.Name.Should().Be(person1.Name);
+            person2.Emails.Should().BeEquivalentTo(person1.Emails);
+        }
+    }
+
+    public record PersonWithEmailList1(
+        string Name,
+        List<string> Emails);
+
+    public record PersonWithEmailList2(
+        string Name,
+        List<string> Emails);
 
     public static readonly IEnumerable<object[]> EnumTestData = new List<object[]>
     {
@@ -116,6 +138,9 @@ public static partial class SimpleCollectionTestsMapper
 {
     [GenerateMapping]
     public static partial SimpleCollectionTests.PersonWithEmails2 Map(this SimpleCollectionTests.PersonWithEmails1 personWithEmails1);
+    
+    [GenerateMapping]
+    public static partial SimpleCollectionTests.PersonWithEmailList2 Map(this SimpleCollectionTests.PersonWithEmailList1 personWithEmailList1);
 
     [GenerateMapping]
     public static partial SimpleCollectionTests.PersonWithPhoneTypes2 Map(this SimpleCollectionTests.PersonWithPhoneTypes1 personWithPhoneTypes1);

@@ -365,8 +365,8 @@ public class Parser : IParser
             return default;
         }
 
-        var targetItemType = TryGetEnumerableItem(targetType);
-        var sourceItemType = TryGetEnumerableItem(sourceType);
+        var (targetItemType, isTargetCollectionList) = TryGetEnumerableItem(targetType);
+        var (sourceItemType, _) = TryGetEnumerableItem(sourceType);
         
         if (sourceItemType?.NullableAnnotation == NullableAnnotation.Annotated)
         {
@@ -455,7 +455,8 @@ public class Parser : IParser
                 propertyName,
                 targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
                 methodName,
-                shouldUseNullConditionalOperator);
+                shouldUseNullConditionalOperator,
+                isTargetCollectionList);
         }
 
         var isMappingFound = TryGetMappingMethod(
@@ -480,7 +481,8 @@ public class Parser : IParser
             propertyName,
             targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
             methodName,
-            shouldUseNullConditionalOperator);
+            shouldUseNullConditionalOperator,
+            isTargetCollectionList);
 
         static bool IsDeFactoNullable(ITypeSymbol type)
             => type.NullableAnnotation is NullableAnnotation.Annotated or NullableAnnotation.None;
@@ -566,11 +568,11 @@ public class Parser : IParser
         }
     }
 
-    private ITypeSymbol? TryGetEnumerableItem(ITypeSymbol typeSymbol)
+    private (ITypeSymbol?, bool IsList) TryGetEnumerableItem(ITypeSymbol typeSymbol)
     {
         if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
         {
-            return arrayTypeSymbol.ElementType;
+            return (arrayTypeSymbol.ElementType, false);
         }
         
         if (typeSymbol.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T
@@ -579,7 +581,13 @@ public class Parser : IParser
             or SpecialType.System_Collections_Generic_IReadOnlyCollection_T
             or SpecialType.System_Collections_Generic_IReadOnlyList_T)
         {
-            return ((INamedTypeSymbol)typeSymbol).TypeArguments[0];
+            return (((INamedTypeSymbol)typeSymbol).TypeArguments[0], false);
+        }
+
+        // dirty hack to support System.Collections.Generic.List<T> without thorough checks
+        if (typeSymbol is INamedTypeSymbol { Name: "List", TypeArguments.Length: 1 } namedTypeSymbol)
+        {
+            return (namedTypeSymbol.TypeArguments[0], true);
         }
 
         return default;
