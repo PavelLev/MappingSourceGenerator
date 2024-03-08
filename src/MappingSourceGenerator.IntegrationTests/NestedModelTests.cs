@@ -56,6 +56,26 @@ public class NestedModelTests
         IReadOnlyCollection<Car2> Cars);
 
     [Fact]
+    public void NestedListTest()
+    {
+        var personWithCarList1 = new PersonWithCarList1(
+            "Bob",
+            [new("Model S"), new("GT-R")]);
+        
+        var personWithCar2 = personWithCarList1.Map();
+
+        personWithCar2.Cars.Select(_ => _.Model).Should().BeEquivalentTo(personWithCarList1.Cars.Select(_ => _.Model));
+    }
+
+    public record PersonWithCarList1(
+        string Name,
+        List<Car1> Cars);
+
+    public record PersonWithCarList2(
+        string Name,
+        List<Car2> Cars);
+
+    [Fact]
     public void NestedCollectionWithEnumPropertyTest()
     {
         var personWithCarWithType1 = new PersonWithCarWithType1(
@@ -148,6 +168,9 @@ public static partial class NestedModelTestsMapper
 
     [GenerateMapping]
     public static partial NestedModelTests.PersonWithCars2 Map(this NestedModelTests.PersonWithCars1 personWithCars1);
+
+    [GenerateMapping]
+    public static partial NestedModelTests.PersonWithCarList2 Map(this NestedModelTests.PersonWithCarList1 personWithCarList1);
 
     [GenerateMapping]
     public static partial NestedModelTests.PersonWithCarWithType2 Map(this NestedModelTests.PersonWithCarWithType1 personWithCarWithType1);

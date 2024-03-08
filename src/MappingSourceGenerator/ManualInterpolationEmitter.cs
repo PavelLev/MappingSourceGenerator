@@ -263,7 +263,13 @@ public class ManualInterpolationEmitter : IEmitter
                 {
                     _contentStringBuilder.Append(".Select(")
                         .Append(mappingProperty.MappingMethodName)
-                        .Append(").ToArray()");
+                        .Append(")");
+
+                    _contentStringBuilder.Append(
+                        mappingProperty.ShouldUseListForCollectionMapping
+                            ? ".ToList()"
+                            : ".ToArray()");
+
                     break;
                 }
 
