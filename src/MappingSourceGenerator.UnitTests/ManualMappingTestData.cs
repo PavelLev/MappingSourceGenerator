@@ -100,16 +100,16 @@ public static class ManualMappingTestData
 
                 public class ManualMappingTests
                 {
-                    public record PersonWithCars1(
+                    public record PersonWithCarArray1(
                         string Name,
-                        IReadOnlyCollection<Car1> Cars);
+                        Car1[] Cars);
                 
                     public record Car1(
                         string Model);
                 
-                    public record PersonWithCars2(
+                    public record PersonWithCarArray2(
                         string Name,
-                        IReadOnlyCollection<Car2> Cars);
+                        Car2[] Cars);
                 
                     public record Car2(
                         string Model;
@@ -118,7 +118,7 @@ public static class ManualMappingTestData
                 public static partial class ManualMappingTestsMapper
                 {
                     [GenerateMapping]
-                    public static partial ManualMappingTests.PersonWithCars2 Map(this ManualMappingTests.PersonWithCars1 personWithCars1);
+                    public static partial ManualMappingTests.PersonWithCarArray2 Map(this ManualMappingTests.PersonWithCarArray1 personWithCarArray1);
                 
                     public static ManualMappingTests.Car2 Map(
                         this ManualMappingTests.Car1 car1)
@@ -137,11 +137,11 @@ public static class ManualMappingTestData
 
                 partial class ManualMappingTestsMapper
                 {
-                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCars2 Map(
-                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCars1 personWithCars1)
+                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarArray2 Map(
+                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarArray1 personWithCarArray1)
                         => new(
-                            personWithCars1.Name,
-                            personWithCars1.Cars.Select(Map).ToArray());
+                            personWithCarArray1.Name,
+                            personWithCarArray1.Cars.Select(Map).ToArray());
                 }
                 """
             },
@@ -215,29 +215,29 @@ public static class ManualMappingTestData
 
                 public class ManualMappingTests
                 {
-                    public record PersonWithCarArray1(
+                    public record PersonWithManualCarArray1(
                         string Name,
-                        Car1[] Cars);
+                        ManualCar1[] Cars);
                 
-                    public record Car1(
+                    public record ManualCar1(
                         string Model);
                 
-                    public record PersonWithCarArray2(
+                    public record PersonWithManualCarArray2(
                         string Name,
-                        Car2[] Cars);
+                        ManualCar2[] Cars);
                 
-                    public record Car2(
+                    public record ManualCar2(
                         string Model;
                 }
 
                 public static partial class ManualMappingTestsMapper
                 {
                     [GenerateMapping]
-                    public static partial ManualMappingTests.PersonWithCarArray2 Map(this ManualMappingTests.PersonWithCarArray1 personWithCarArray1);
+                    public static partial ManualMappingTests.PersonWithManualCarArray2 Map(this ManualMappingTests.PersonWithManualCarArray1 personWithManualCarArray1);
                 
-                    public static ManualMappingTests.Car2[] Map(
-                        this ManualMappingTests.Car1[] car1Array)
-                        => car1Array.Select(_ => new ManualMappingTests.Car2(_.Model)).ToArray();
+                    public static ManualMappingTests.ManualCar2[] Map(
+                        this ManualMappingTests.ManualCar1[] manualCar1Array)
+                        => manualCar1Array.Select(_ => new ManualMappingTests.ManualCar2(_.Model)).ToArray();
                 }
                 """,
                 """
@@ -251,11 +251,11 @@ public static class ManualMappingTestData
 
                 partial class ManualMappingTestsMapper
                 {
-                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarArray2 Map(
-                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarArray1 personWithCarArray1)
+                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithManualCarArray2 Map(
+                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithManualCarArray1 personWithManualCarArray1)
                         => new(
-                            personWithCarArray1.Name,
-                            personWithCarArray1.Cars.Map());
+                            personWithManualCarArray1.Name,
+                            personWithManualCarArray1.Cars.Map());
                 }
                 """
             }

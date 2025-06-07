@@ -63,7 +63,7 @@ public static class DiagnosticDescriptors
     public static DiagnosticDescriptor MappingMethodParameterTypeNotSupported { get; } = new(
         "MAPGEN1013",
         "Invalid mapping method parameters",
-        "Parameter type {0} of mapping method should be enum, class or struct",
+        "Parameter type {0} of mapping method should be enum, class or struct but found {1}",
         nameof(MappingGenerator),
         DiagnosticSeverity.Error,
         true);

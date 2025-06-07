@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace F0.CodeAnalysis.CSharp.Benchmarking;
+namespace MappingSourceGenerator.Benchmarks;
 
 [Generator(LanguageNames.CSharp)]
 public sealed class NullCSharpIncrementalGenerator : IIncrementalGenerator

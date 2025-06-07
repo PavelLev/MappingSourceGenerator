@@ -326,14 +326,14 @@ public static class NestedModelTestData
                 namespace MappingSourceGenerator.UnitTests;
                 public class NestedModelTests
                 {
-                    public record PersonWithCars1(
+                    public record PersonWithCarArray1(
                         string Name,
                         Car1[] Cars);
                 
                     public record Car1(
                         string Model);
 
-                    public record PersonWithCars2(
+                    public record PersonWithCarArray2(
                         string Name,
                         Car2[] Cars);
                 
@@ -344,7 +344,7 @@ public static class NestedModelTestData
                 public static partial class NestedModelTestsMapper
                 {
                     [GenerateMapping]
-                    public static partial NestedModelTests.PersonWithCars2 Map(this NestedModelTests.PersonWithCars1 personWithCars1);
+                    public static partial NestedModelTests.PersonWithCarArray2 Map(this NestedModelTests.PersonWithCarArray1 personWithCarArray1);
                 }
                 """,
                 """
@@ -363,11 +363,11 @@ public static class NestedModelTestData
                         => new(
                             car1.Model);
 
-                    public static partial MappingSourceGenerator.UnitTests.NestedModelTests.PersonWithCars2 Map(
-                        this MappingSourceGenerator.UnitTests.NestedModelTests.PersonWithCars1 personWithCars1)
+                    public static partial MappingSourceGenerator.UnitTests.NestedModelTests.PersonWithCarArray2 Map(
+                        this MappingSourceGenerator.UnitTests.NestedModelTests.PersonWithCarArray1 personWithCarArray1)
                         => new(
-                            personWithCars1.Name,
-                            personWithCars1.Cars.Select(Map).ToArray());
+                            personWithCarArray1.Name,
+                            personWithCarArray1.Cars.Select(Map).ToArray());
                 }
                 """
             },

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -177,7 +178,8 @@ public class Parser : IParser
                 Diagnostic.Create(
                     DiagnosticDescriptors.MappingMethodParameterTypeNotSupported, 
                     GetLocationWithCaching(markedMethod),
-                    parameterType.ToDisplayString()));
+                    parameterType.ToDisplayString(),
+                    parameterType.TypeKind.ToString()));
             hasErrors = true;
         }
 
@@ -365,8 +367,8 @@ public class Parser : IParser
             return default;
         }
 
-        var (targetItemType, isTargetCollectionList) = TryGetEnumerableItem(targetType);
-        var (sourceItemType, _) = TryGetEnumerableItem(sourceType);
+        var (targetItemType, isTargetCollectionList, targetCollectionType) = TryGetEnumerableItem(targetType);
+        var (sourceItemType, _, sourceCollectionType) = TryGetEnumerableItem(sourceType);
         
         if (sourceItemType?.NullableAnnotation == NullableAnnotation.Annotated)
         {
@@ -389,6 +391,12 @@ public class Parser : IParser
             && targetType is { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T }
                 and INamedTypeSymbol namedTargetType
             && SymbolEqualityComparer.Default.Equals(namedTargetType.TypeArguments[0], sourceType))
+        {
+            return new(propertyName, MappingPropertyKind.Direct);
+        }
+
+        if (SymbolEqualityComparer.Default.Equals(sourceItemType, targetItemType)
+            && AreCollectionTypesCompatible(sourceCollectionType, targetCollectionType))
         {
             return new(propertyName, MappingPropertyKind.Direct);
         }
@@ -503,6 +511,28 @@ public class Parser : IParser
             }
         }
 
+        static bool AreCollectionTypesCompatible(CollectionType? sourceCollectionType, CollectionType? targetCollectionType)
+        {
+            return (sourceCollectionType, targetCollectionType) switch
+            {
+                (CollectionType.IReadOnlyCollection, CollectionType.IEnumerable) => true,
+                (CollectionType.IReadOnlyList, CollectionType.IEnumerable) => true,
+                (CollectionType.IReadOnlyList, CollectionType.IReadOnlyCollection) => true,
+                (CollectionType.ICollection, CollectionType.IEnumerable) => true,
+                (CollectionType.IList, CollectionType.IEnumerable) => true,
+                (CollectionType.IList, CollectionType.ICollection) => true,
+                (CollectionType.Array, CollectionType.IEnumerable) => true,
+                (CollectionType.Array, CollectionType.IReadOnlyCollection) => true,
+                (CollectionType.Array, CollectionType.IReadOnlyList) => true,
+                (CollectionType.List, CollectionType.IEnumerable) => true,
+                (CollectionType.List, CollectionType.IReadOnlyCollection) => true,
+                (CollectionType.List, CollectionType.IReadOnlyList) => true,
+                (CollectionType.List, CollectionType.ICollection) => true,
+                (CollectionType.List, CollectionType.IList) => true,
+                _ => false,
+            };
+        }
+
         static bool MappingMethodExists(
             Parser parser,
             ImmutableArray<ISymbol> mappingClassMembers,
@@ -568,29 +598,43 @@ public class Parser : IParser
         }
     }
 
-    private (ITypeSymbol?, bool IsList) TryGetEnumerableItem(ITypeSymbol typeSymbol)
+    private (ITypeSymbol? ItemType, bool IsList, CollectionType? CollectionType) TryGetEnumerableItem(
+        ITypeSymbol typeSymbol)
     {
         if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
         {
-            return (arrayTypeSymbol.ElementType, false);
+            return (arrayTypeSymbol.ElementType, false, CollectionType.Array);
         }
+
+        var specialType = typeSymbol.OriginalDefinition.SpecialType;
         
-        if (typeSymbol.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T
+        if (specialType is SpecialType.System_Collections_Generic_IEnumerable_T
             or SpecialType.System_Collections_Generic_ICollection_T
             or SpecialType.System_Collections_Generic_IList_T
             or SpecialType.System_Collections_Generic_IReadOnlyCollection_T
             or SpecialType.System_Collections_Generic_IReadOnlyList_T)
         {
-            return (((INamedTypeSymbol)typeSymbol).TypeArguments[0], false);
+            return (((INamedTypeSymbol)typeSymbol).TypeArguments[0], false, Map(specialType));
         }
 
         // dirty hack to support System.Collections.Generic.List<T> without thorough checks
         if (typeSymbol is INamedTypeSymbol { Name: "List", TypeArguments.Length: 1 } namedTypeSymbol)
         {
-            return (namedTypeSymbol.TypeArguments[0], true);
+            return (namedTypeSymbol.TypeArguments[0], true, CollectionType.List);
         }
 
         return default;
+
+        static CollectionType? Map(SpecialType specialType)
+            => specialType switch
+            {
+                SpecialType.System_Collections_Generic_IEnumerable_T => CollectionType.IEnumerable,
+                SpecialType.System_Collections_Generic_ICollection_T => CollectionType.ICollection,
+                SpecialType.System_Collections_Generic_IList_T => CollectionType.IList,
+                SpecialType.System_Collections_Generic_IReadOnlyCollection_T => CollectionType.IReadOnlyCollection,
+                SpecialType.System_Collections_Generic_IReadOnlyList_T => CollectionType.IReadOnlyList,
+                _ => null
+            };
     }
 
     private bool TryGetEnumMappingMethod(
@@ -733,5 +777,16 @@ public class Parser : IParser
         }
 
         return location;
+    }
+
+    private enum CollectionType
+    {
+        Array,
+        IEnumerable,
+        IReadOnlyCollection,
+        IReadOnlyList,
+        ICollection,
+        IList,
+        List
     }
 }
