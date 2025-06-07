@@ -1,5 +1,4 @@
-﻿using F0.CodeAnalysis.CSharp.Benchmarking;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace MappingSourceGenerator.Benchmarks;

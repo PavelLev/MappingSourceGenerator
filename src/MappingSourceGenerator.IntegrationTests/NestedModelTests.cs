@@ -5,7 +5,7 @@ using FluentAssertions.Execution;
 using MappingSourceGenerator.Markers;
 using Xunit;
 
-namespace MappingSourceGenerator.Tests;
+namespace MappingSourceGenerator.IntegrationTests;
 
 public class NestedModelTests
 {
@@ -40,7 +40,7 @@ public class NestedModelTests
     {
         var personWithCar1 = new PersonWithCars1(
             "Bob",
-            new Car1[] {new("Model S"), new("GT-R")});
+            [new("Model S"), new("GT-R")]);
         
         var personWithCar2 = personWithCar1.Map();
 
@@ -124,33 +124,31 @@ public class NestedModelTests
         Petrol,
     }
 
-    [Fact]
-    public void NestedNullablePropertyWithValueTest()
+    [Theory]
+    [MemberData(nameof(NestedNullablePropertyTestData))]
+    public void NestedNullablePropertyTest(PersonWithNullableCar1 personWithNullableCar1, Car2? expectedCar)
     {
-        var personWithNullableCar1 = new PersonWithNullableCar1(
-            "Bob",
-            new("Model S"));
-        
         var personWithNullableCar2 = personWithNullableCar1.Map();
 
-        using (new AssertionScope())
-        {
-            personWithNullableCar2.Car.Should().NotBeNull();
-            personWithNullableCar2.Car!.Model.Should().Be(personWithNullableCar1.Car!.Model);
-        }
+        personWithNullableCar2.Car.Should().Be(expectedCar);
     }
 
-    [Fact]
-    public void NestedNullablePropertyWithNullTest()
-    {
-        var personWithNullableCar1 = new PersonWithNullableCar1(
-            "Bob",
-            null);
-        
-        var personWithNullableCar2 = personWithNullableCar1.Map();
-
-        personWithNullableCar2.Car.Should().BeNull();
-    }
+    public static IEnumerable<object?[]> NestedNullablePropertyTestData()
+        =>
+        [
+            [
+                new PersonWithNullableCar1(
+                    "Bob",
+                    null),
+                null
+            ],
+            [
+                new PersonWithNullableCar1(
+                    "Bob",
+                    new("Model S")),
+                new Car2("Model S")
+            ]
+        ];
 
     public record PersonWithNullableCar1(
         string Name,
@@ -159,6 +157,26 @@ public class NestedModelTests
     public record PersonWithNullableCar2(
         string Name,
         Car2? Car);
+
+    [Fact]
+    public void NestedArrayTest()
+    {
+        var personWithCarArray1 = new PersonWithCarArray1(
+            "Bob",
+            [new("Model S"), new("GT-R")]);
+        
+        var personWithCar2 = personWithCarArray1.Map();
+
+        personWithCar2.Cars.Select(_ => _.Model).Should().BeEquivalentTo(personWithCarArray1.Cars.Select(_ => _.Model));
+    }
+    
+    public record PersonWithCarArray1(
+        string Name,
+        Car1[] Cars);
+    
+    public record PersonWithCarArray2(
+        string Name,
+        Car2[] Cars);
 }
 
 public static partial class NestedModelTestsMapper
@@ -177,4 +195,7 @@ public static partial class NestedModelTestsMapper
 
     [GenerateMapping]
     public static partial NestedModelTests.PersonWithNullableCar2 Map(this NestedModelTests.PersonWithNullableCar1 personWithNullableCar1);
+
+    [GenerateMapping]
+    public static partial NestedModelTests.PersonWithCarArray2 Map(this NestedModelTests.PersonWithCarArray1 personWithCarArray1);
 }

@@ -4,7 +4,7 @@ using FluentAssertions.Execution;
 using MappingSourceGenerator.Markers;
 using Xunit;
 
-namespace MappingSourceGenerator.Tests;
+namespace MappingSourceGenerator.IntegrationTests;
 
 public class SimpleModelTests
 {
@@ -69,7 +69,7 @@ public class SimpleModelTests
     [InlineData("Rob", PhoneType1.Android, PhoneType2.Android)]
     [InlineData("Bob", PhoneType1.Ios, PhoneType2.Ios)]
     [InlineData("Eugene", PhoneType1.Other, PhoneType2.Other)]
-    public void NullableEnumToNonNullableEnumTest(string name, PhoneType1 sourcePhoneType, PhoneType2 expectedPhoneType)
+    public void NonNullableEnumToNullableEnumTest(string name, PhoneType1 sourcePhoneType, PhoneType2 expectedPhoneType)
     {
         var personWithPhoneType1 = new PersonWithPhoneType1(name, sourcePhoneType);
         

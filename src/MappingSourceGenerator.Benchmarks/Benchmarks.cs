@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Reflection;
 using BenchmarkDotNet.Attributes;
-using F0.CodeAnalysis.CSharp.Benchmarking;
 using MappingSourceGenerator.Markers;
 using Microsoft.CodeAnalysis;
 
