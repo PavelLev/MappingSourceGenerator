@@ -129,9 +129,9 @@ public static class SimpleCollectionTestData
 
                     public enum PhoneType2
                     {
-                        Android,
-                        Ios,
                         Other,
+                        Ios,
+                        Android,
                     }
                 }
 

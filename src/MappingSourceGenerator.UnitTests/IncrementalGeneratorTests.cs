@@ -10,9 +10,9 @@ public class IncrementalGeneratorTests
     [Theory]
     [MemberData(nameof(ManualMappingTestData.Data), MemberType = typeof(ManualMappingTestData))]
     [MemberData(nameof(NestedModelTestData.Data), MemberType = typeof(NestedModelTestData))]
-    [MemberData(nameof(NonNestedClassTestData.Data), MemberType = typeof(NonNestedClassTestData))]
     [MemberData(nameof(SimpleCollectionTestData.Data), MemberType = typeof(SimpleCollectionTestData))]
     [MemberData(nameof(SimpleModelTestData.Data), MemberType = typeof(SimpleModelTestData))]
+    [MemberData(nameof(UsableMapMethodNamesTestData.Data), MemberType = typeof(UsableMapMethodNamesTestData))]
     public void SourceGeneratedOnlyOnceForTheSameCodeTest(
         string _0,
         string source,

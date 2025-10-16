@@ -124,31 +124,23 @@ public class NestedModelTests
         Petrol,
     }
 
-    [Theory]
-    [MemberData(nameof(NestedNullablePropertyTestData))]
-    public void NestedNullablePropertyTest(PersonWithNullableCar1 personWithNullableCar1, Car2? expectedCar)
+    [Fact]
+    public void NestedNullablePropertyTest()
     {
-        var personWithNullableCar2 = personWithNullableCar1.Map();
+        // Not using theory to keep number of Integration and Unit tests in sync
+        var personWithNonNullCar1 = new PersonWithNullableCar1(
+            "Bob",
+            new("Model S"));
+        var personWithNullCar1 = new PersonWithNullableCar1(
+            "Bob",
+            null);
 
-        personWithNullableCar2.Car.Should().Be(expectedCar);
+        var personWithNonNullCar2 = personWithNonNullCar1.Map();
+        var personWithNullCar2 = personWithNullCar1.Map();
+        
+        personWithNonNullCar2.Car.Should().Be(new Car2("Model S"));
+        personWithNullCar2.Car.Should().BeNull();
     }
-
-    public static IEnumerable<object?[]> NestedNullablePropertyTestData()
-        =>
-        [
-            [
-                new PersonWithNullableCar1(
-                    "Bob",
-                    null),
-                null
-            ],
-            [
-                new PersonWithNullableCar1(
-                    "Bob",
-                    new("Model S")),
-                new Car2("Model S")
-            ]
-        ];
 
     public record PersonWithNullableCar1(
         string Name,

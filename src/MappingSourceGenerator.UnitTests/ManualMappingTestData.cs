@@ -7,7 +7,7 @@ public static class ManualMappingTestData
         {
             new object[]
             {
-                "NestedCollectionWithEnumPropertyTest",
+                "NestedPropertyWithManualMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -18,48 +18,30 @@ public static class ManualMappingTestData
 
                 public class ManualMappingTests
                 {
-                    public record PersonWithCarWithType1(
+                    public record PersonWithCar1(
                         string Name,
-                        IReadOnlyCollection<CarWithType1> Cars);
+                        Car1 Car);
                 
-                    public record CarWithType1(
-                        string Model,
-                        CarType1 Type);
+                    public record Car1(
+                        string Model);
                 
-                    public enum CarType1
-                    {
-                        Electric,
-                        Petrol,
-                    }
-                
-                    public record PersonWithCarWithType2(
+                    public record PersonWithCar2(
                         string Name,
-                        IReadOnlyCollection<CarWithType2> Cars);
+                        Car2 Car);
                 
-                    public record CarWithType2(
-                        string Model,
-                        CarType2 Type);
-                
-                    public enum CarType2
-                    {
-                        Electric,
-                        Petrol,
-                    }
+                    public record Car2(
+                        string Model);
                 }
 
                 public static partial class ManualMappingTestsMapper
                 {
                     [GenerateMapping]
-                    public static partial ManualMappingTests.PersonWithCarWithType2 Map(this ManualMappingTests.PersonWithCarWithType1 personWithCarWithType1);
+                    public static partial ManualMappingTests.PersonWithCar2 Map(this ManualMappingTests.PersonWithCar1 personWithCar1);
                 
-                    public static ManualMappingTests.CarType2 Map(
-                        this ManualMappingTests.CarType1 carType1)
-                        => carType1 switch
-                        {
-                            ManualMappingTests.CarType1.Electric => ManualMappingTests.CarType2.Electric,
-                            ManualMappingTests.CarType1.Petrol => ManualMappingTests.CarType2.Petrol,
-                            _ => throw new InvalidOperationException($"Unable to map MappingSourceGenerator.UnitTests.ManualMappingTests.CarType1.{carType1}"),
-                        };
+                    public static ManualMappingTests.Car2 Map(
+                        this ManualMappingTests.Car1 car1)
+                        => new(
+                            car1.Model);
                 }
                 """,
                 """
@@ -73,17 +55,11 @@ public static class ManualMappingTestData
 
                 partial class ManualMappingTestsMapper
                 {
-                    public static MappingSourceGenerator.UnitTests.ManualMappingTests.CarWithType2 Map(
-                        this MappingSourceGenerator.UnitTests.ManualMappingTests.CarWithType1 carWithType1)
+                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCar2 Map(
+                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCar1 personWithCar1)
                         => new(
-                            carWithType1.Model,
-                            carWithType1.Type.Map());
-                
-                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarWithType2 Map(
-                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarWithType1 personWithCarWithType1)
-                        => new(
-                            personWithCarWithType1.Name,
-                            personWithCarWithType1.Cars.Select(Map).ToArray());
+                            personWithCar1.Name,
+                            personWithCar1.Car.Map());
                 }
                 """
             },
@@ -112,7 +88,7 @@ public static class ManualMappingTestData
                         Car2[] Cars);
                 
                     public record Car2(
-                        string Model;
+                        string Model);
                 }
 
                 public static partial class ManualMappingTestsMapper
@@ -142,6 +118,64 @@ public static class ManualMappingTestData
                         => new(
                             personWithCarArray1.Name,
                             personWithCarArray1.Cars.Select(Map).ToArray());
+                }
+                """
+            },
+            new object[]
+            {
+                "NestedListWithManualItemMappingTest",
+                """
+                #nullable enable
+                using System;
+                using System.Collections.Generic;
+                using MappingSourceGenerator.Markers;
+
+                namespace MappingSourceGenerator.UnitTests;
+
+                public class ManualMappingTests
+                {
+                    public record PersonWithCarList1(
+                        string Name,
+                        List<Car1> Cars);
+                
+                    public record Car1(
+                        string Model);
+                
+                    public record PersonWithCarList2(
+                        string Name,
+                        List<Car2> Cars);
+                
+                    public record Car2(
+                        string Model);
+                }
+
+                public static partial class ManualMappingTestsMapper
+                {
+                    [GenerateMapping]
+                    public static partial ManualMappingTests.PersonWithCarList2 Map(this ManualMappingTests.PersonWithCarList1 personWithCarList1);
+                
+                    public static ManualMappingTests.Car2 Map(
+                        this ManualMappingTests.Car1 car1)
+                        => new(
+                            car1.Model);
+                }
+                """,
+                """
+                // <auto-generated/>
+                #pragma warning disable
+                #nullable enable
+                using System;
+                using System.Linq;
+
+                namespace MappingSourceGenerator.UnitTests;
+
+                partial class ManualMappingTestsMapper
+                {
+                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarList2 Map(
+                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarList1 personWithCarList1)
+                        => new(
+                            personWithCarList1.Name,
+                            personWithCarList1.Cars.Select(Map).ToList());
                 }
                 """
             },
@@ -227,7 +261,7 @@ public static class ManualMappingTestData
                         ManualCar2[] Cars);
                 
                     public record ManualCar2(
-                        string Model;
+                        string Model);
                 }
 
                 public static partial class ManualMappingTestsMapper
@@ -258,6 +292,88 @@ public static class ManualMappingTestData
                             personWithManualCarArray1.Cars.Map());
                 }
                 """
-            }
+            },
+            new object[]
+            {
+                "NestedCollectionWithEnumPropertyTest",
+                """
+                #nullable enable
+                using System;
+                using System.Collections.Generic;
+                using MappingSourceGenerator.Markers;
+
+                namespace MappingSourceGenerator.UnitTests;
+
+                public class ManualMappingTests
+                {
+                    public record PersonWithCarWithType1(
+                        string Name,
+                        IReadOnlyCollection<CarWithType1> Cars);
+                
+                    public record CarWithType1(
+                        string Model,
+                        CarType1 Type);
+                
+                    public enum CarType1
+                    {
+                        Electric,
+                        Petrol,
+                    }
+                
+                    public record PersonWithCarWithType2(
+                        string Name,
+                        IReadOnlyCollection<CarWithType2> Cars);
+                
+                    public record CarWithType2(
+                        string Model,
+                        CarType2 Type);
+                
+                    public enum CarType2
+                    {
+                        Electric,
+                        Petrol,
+                    }
+                }
+
+                public static partial class ManualMappingTestsMapper
+                {
+                    [GenerateMapping]
+                    public static partial ManualMappingTests.PersonWithCarWithType2 Map(this ManualMappingTests.PersonWithCarWithType1 personWithCarWithType1);
+                
+                    public static ManualMappingTests.CarType2 Map(
+                        this ManualMappingTests.CarType1 carType1)
+                        => carType1 switch
+                        {
+                            ManualMappingTests.CarType1.Electric => ManualMappingTests.CarType2.Electric,
+                            ManualMappingTests.CarType1.Petrol => ManualMappingTests.CarType2.Petrol,
+                            _ => throw new InvalidOperationException($"Unable to map MappingSourceGenerator.UnitTests.ManualMappingTests.CarType1.{carType1}"),
+                        };
+                }
+                """,
+                """
+                // <auto-generated/>
+                #pragma warning disable
+                #nullable enable
+                using System;
+                using System.Linq;
+
+                namespace MappingSourceGenerator.UnitTests;
+
+                partial class ManualMappingTestsMapper
+                {
+                    public static MappingSourceGenerator.UnitTests.ManualMappingTests.CarWithType2 Map(
+                        this MappingSourceGenerator.UnitTests.ManualMappingTests.CarWithType1 carWithType1)
+                        => new(
+                            carWithType1.Model,
+                            carWithType1.Type.Map());
+                
+                    public static partial MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarWithType2 Map(
+                        this MappingSourceGenerator.UnitTests.ManualMappingTests.PersonWithCarWithType1 personWithCarWithType1)
+                        => new(
+                            personWithCarWithType1.Name,
+                            personWithCarWithType1.Cars.Select(Map).ToArray());
+                }
+                """
+            },
         };
 }

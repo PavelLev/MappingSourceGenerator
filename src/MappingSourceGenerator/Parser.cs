@@ -54,7 +54,6 @@ public class Parser : IParser
                 mappingMethods,
                 diagnostics,
                 markedMethod,
-                markedMethod.Name,
                 parameter.Type,
                 parameter.Name,
                 parameter.Name,
@@ -136,7 +135,6 @@ public class Parser : IParser
         ICollection<MappingMethod> mappingMethods,
         ICollection<Diagnostic> diagnostics,
         IMethodSymbol markedMethod,
-        string methodName,
         ITypeSymbol parameterType,
         string parameterName,
         string parameterSubPath,
@@ -151,7 +149,6 @@ public class Parser : IParser
                 mappingMethods,
                 diagnostics,
                 markedMethod,
-                methodName,
                 parameterType,
                 parameterName,
                 parameterSubPath,
@@ -192,7 +189,6 @@ public class Parser : IParser
             mappingMethods,
             diagnostics,
             markedMethod,
-            methodName,
             parameterType,
             parameterName,
             parameterSubPath,
@@ -206,7 +202,6 @@ public class Parser : IParser
         ICollection<MappingMethod> mappingMethods,
         ICollection<Diagnostic> diagnostics,
         IMethodSymbol markedMethod,
-        string methodName,
         ITypeSymbol parameterType,
         string parameterName,
         string parameterSubPath,
@@ -300,13 +295,11 @@ public class Parser : IParser
                 mappingMethods,
                 diagnostics,
                 markedMethod,
-                methodName,
                 parameterSubPath,
                 correspondingParameterTypeProperty.Name,
                 returnTypeConstructorParameter.Type,
                 correspondingParameterTypeProperty.Type,
                 accessibility,
-                isPartial,
                 mappingClass);
 
             if (mappingProperty is not null)
@@ -323,7 +316,7 @@ public class Parser : IParser
         var mappingMethod = new MappingMethod(
             mappingClass.Name,
             GetContainingNames(mappingClass),
-            methodName,
+            markedMethod.Name,
             accessibility,
             isPartial,
             parameterType.Name,
@@ -345,13 +338,11 @@ public class Parser : IParser
         ICollection<MappingMethod> mappingMethods,
         ICollection<Diagnostic> diagnostics,
         IMethodSymbol markedMethod,
-        string methodName,
         string parameterSubPath,
         string propertyName,
         ITypeSymbol targetType,
         ITypeSymbol sourceType,
         Accessibility accessibility,
-        bool isPartial,
         INamedTypeSymbol mappingClass)
     {
         if (IsDeFactoNullable(sourceType) && !IsDeFactoNullable(targetType))
@@ -384,7 +375,7 @@ public class Parser : IParser
 
         if (SymbolEqualityComparer.Default.Equals(targetType, sourceType))
         {
-            return new(propertyName, MappingPropertyKind.Direct);
+            return new(propertyName, MappingPropertyKind.Direct, null, false, false);
         }
 
         if (sourceType.IsValueType
@@ -392,24 +383,32 @@ public class Parser : IParser
                 and INamedTypeSymbol namedTargetType
             && SymbolEqualityComparer.Default.Equals(namedTargetType.TypeArguments[0], sourceType))
         {
-            return new(propertyName, MappingPropertyKind.Direct);
+            return new(propertyName, MappingPropertyKind.Direct, null, false, false);
         }
 
         if (SymbolEqualityComparer.Default.Equals(sourceItemType, targetItemType)
             && AreCollectionTypesCompatible(sourceCollectionType, targetCollectionType))
         {
-            return new(propertyName, MappingPropertyKind.Direct);
+            return new(propertyName, MappingPropertyKind.Direct, null, false, false);
         }
         
         var shouldUseNullConditionalOperator = sourceType.NullableAnnotation == NullableAnnotation.Annotated;
 
-        if (MappingMethodExists(this, GetMembersWithCaching(mappingClass), methodName, targetType, sourceType))
+        var existingSingleItemMapMethodName = GetExistingMappingMethodOrDefault(
+            this,
+            GetMembersWithCaching(mappingClass),
+            markedMethod,
+            targetType,
+            sourceType);
+        
+        if (existingSingleItemMapMethodName is not null)
         {
             return new(
                 propertyName,
                 MappingPropertyKind.SingleItemMapping,
-                methodName,
-                shouldUseNullConditionalOperator);
+                existingSingleItemMapMethodName,
+                shouldUseNullConditionalOperator,
+                false);
         }
 
         // only one of types is enumerable
@@ -441,13 +440,21 @@ public class Parser : IParser
 
         if (targetItemType is not null)
         {
-            if (MappingMethodExists(this, GetMembersWithCaching(mappingClass), methodName, targetItemType, sourceItemType!))
+            var existingEnumerableMapMethodName = GetExistingMappingMethodOrDefault(
+                this,
+                GetMembersWithCaching(mappingClass),
+                markedMethod,
+                targetItemType,
+                sourceItemType!);
+            
+            if (existingEnumerableMapMethodName is not null)
             {
                 return new(
                     propertyName,
                     MappingPropertyKind.EnumerableMapping,
-                    methodName,
-                    shouldUseNullConditionalOperator);
+                    existingEnumerableMapMethodName,
+                    shouldUseNullConditionalOperator,
+                    isTargetCollectionList);
             }
             
             targetType = targetItemType;
@@ -457,12 +464,12 @@ public class Parser : IParser
         RemoveNullability(ref sourceType);
         RemoveNullability(ref targetType);
 
-        if (MappingMethodAlreadyGenerated(_symbolsByMappingMethod, mappingMethods, methodName, mappingClass, targetType, sourceType))
+        if (MappingMethodAlreadyGenerated(_symbolsByMappingMethod, mappingMethods, markedMethod.Name, mappingClass, targetType, sourceType))
         {
             return new(
                 propertyName,
                 targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
-                methodName,
+                markedMethod.Name,
                 shouldUseNullConditionalOperator,
                 isTargetCollectionList);
         }
@@ -471,7 +478,6 @@ public class Parser : IParser
             mappingMethods,
             diagnostics,
             markedMethod,
-            methodName,
             sourceType,
             sourceType.Name,
             $"{parameterSubPath}.{propertyName}",
@@ -488,7 +494,7 @@ public class Parser : IParser
         return new(
             propertyName,
             targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
-            methodName,
+            markedMethod.Name,
             shouldUseNullConditionalOperator,
             isTargetCollectionList);
 
@@ -533,10 +539,10 @@ public class Parser : IParser
             };
         }
 
-        static bool MappingMethodExists(
+        static string? GetExistingMappingMethodOrDefault(
             Parser parser,
             ImmutableArray<ISymbol> mappingClassMembers,
-            string methodName,
+            IMethodSymbol markedMethod,
             ITypeSymbol targetType,
             ITypeSymbol sourceType)
         {
@@ -552,11 +558,34 @@ public class Parser : IParser
                 var methodParameters = parser.GetParametersWithCaching(method);
 
                 var isMethodMatching = methodParameters.Length == 1
-                    && method.Name == methodName
+                    && CanMapMethodBeUsed(markedMethod, method.Name)
                     && SymbolEqualityComparer.Default.Equals(method.ReturnType, targetType)
                     && SymbolEqualityComparer.Default.Equals(methodParameters[0].Type, sourceType);
 
                 if (isMethodMatching)
+                {
+                    return method.Name;
+                }
+            }
+
+            return null;
+        }
+        
+        static bool CanMapMethodBeUsed(
+            IMethodSymbol markedMethod,
+            string targetMethodName)
+        {
+            if (markedMethod.Name == targetMethodName)
+            {
+                return true;
+            }
+
+            var attribute = markedMethod.GetAttributes().First();
+            var usableMapMethodNames = attribute.ConstructorArguments.FirstOrDefault();
+            
+            foreach (var typedConstant in usableMapMethodNames.Values)
+            {
+                if ((string?)typedConstant.Value == targetMethodName)
                 {
                     return true;
                 }
@@ -577,6 +606,8 @@ public class Parser : IParser
             // (around 6% of Parser.GetMapperClasses allocations at the moment of optimization)
             foreach (var mappingMethod in mappingMethods)
             {
+                // We don't want to use CanMapMethodBeUsed here, since we'd generate different result
+                // for different map methods declaration order
                 if (mappingMethod.Name != methodName)
                 {
                     continue;
@@ -641,7 +672,6 @@ public class Parser : IParser
         ICollection<MappingMethod> mappingMethods,
         ICollection<Diagnostic> diagnostics,
         IMethodSymbol markedMethod,
-        string methodName,
         ITypeSymbol parameterType,
         string parameterName,
         string parameterSubPath,
@@ -700,7 +730,7 @@ public class Parser : IParser
         var mappingMethod = new MappingMethod(
             mappingClass.Name,
             GetContainingNames(mappingClass),
-            methodName,
+            markedMethod.Name,
             accessibility,
             isPartial,
             parameterType.Name,

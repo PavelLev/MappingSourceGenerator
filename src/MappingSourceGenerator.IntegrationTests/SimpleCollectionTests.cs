@@ -53,43 +53,29 @@ public class SimpleCollectionTests
         string Name,
         List<string> Emails);
 
-    public static readonly IEnumerable<object[]> EnumTestData = new List<object[]>
+    [Fact]
+    public void EnumEnumerableTest()
     {
-        new object[]
-        {
+        // Not using theory to keep number of Integration and Unit tests in sync
+        var personWithAndroidAndIos1 = new PersonWithPhoneTypes1(
             "Rob",
-            new[] { PhoneType1.Android, PhoneType1.Ios },
-            new[] { PhoneType2.Android, PhoneType2.Ios },
-        },
-        new object[]
-        {
+            [PhoneType1.Android, PhoneType1.Ios]);
+        var personWithOther1 = new PersonWithPhoneTypes1(
             "Bob",
-            new[] { PhoneType1.Other },
-            new[] { PhoneType2.Other },
-        },
-        new object[]
-        {
+            [PhoneType1.Other]);
+        var personWithoutPhone1 = new PersonWithPhoneTypes1(
             "Eugene",
-            Array.Empty<PhoneType1>(),
-            Array.Empty<PhoneType2>(),
-        },
-    };
+            []);
 
-    [Theory]
-    [MemberData(nameof(EnumTestData))]
-    public void EnumEnumerableTest(
-        string name,
-        IEnumerable<PhoneType1> sourcePhoneTypes,
-        IEnumerable<PhoneType2> expectedPhoneTypes)
-    {
-        var personWithPhoneType1 = new PersonWithPhoneTypes1(name, sourcePhoneTypes);
-        
-        var personWithPhoneType2 = personWithPhoneType1.Map();
+        var personWithAndroidAndIos2 = personWithAndroidAndIos1.Map();
+        var personWithOther2 = personWithOther1.Map();
+        var personWithoutPhone2 = personWithoutPhone1.Map();
 
         using (new AssertionScope())
         {
-            personWithPhoneType2.Name.Should().Be(personWithPhoneType1.Name);
-            personWithPhoneType2.PhoneTypes.Should().BeEquivalentTo(expectedPhoneTypes);
+            personWithAndroidAndIos2.PhoneTypes.Should().BeEquivalentTo([PhoneType2.Android, PhoneType2.Ios]);
+            personWithOther2.PhoneTypes.Should().BeEquivalentTo([PhoneType2.Other]);
+            personWithoutPhone2.PhoneTypes.Should().BeEmpty();
         }
     }
 
@@ -110,15 +96,15 @@ public class SimpleCollectionTests
 
     public enum PhoneType2
     {
+        Other,
         Android,
         Ios,
-        Other,
     }
 
     [Fact]
     public void ReadOnlyCollectionToNullableReadOnlyCollectionTest()
     {
-        var person1 = new PersonWithEmails1("Bob", new[] {"bob@gmail.com", "bob123@gmail.com"});
+        var person1 = new PersonWithEmails1("Bob", ["bob@gmail.com", "bob123@gmail.com"]);
         
         var person2 = person1.MapToOptional();
 
