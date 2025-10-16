@@ -30,17 +30,21 @@ public class SimpleModelTests
         string Name,
         int Age);
 
-    [Theory]
-    [InlineData("Rob", PhoneType1.Android, PhoneType2.Android)]
-    [InlineData("Bob", PhoneType1.Ios, PhoneType2.Ios)]
-    [InlineData("Eugene", PhoneType1.Other, PhoneType2.Other)]
-    public void EnumTest(string name, PhoneType1 sourcePhoneType, PhoneType2 expectedPhoneType)
+    [Fact]
+    public void EnumTest()
     {
-        var personWithPhoneType1 = new PersonWithPhoneType1(name, sourcePhoneType);
-        
-        var personWithPhoneType2 = personWithPhoneType1.Map();
+        // Not using theory to keep number of Integration and Unit tests in sync
+        var personWithAndroid1 = new PersonWithPhoneType1("Rob", PhoneType1.Android);
+        var personWithIos1 = new PersonWithPhoneType1("Bob", PhoneType1.Ios);
+        var personWithOther1 = new PersonWithPhoneType1("Eugene", PhoneType1.Other);
 
-        personWithPhoneType2.PhoneType.Should().Be(expectedPhoneType);
+        var personWithAndroid2 = personWithAndroid1.Map();
+        var personWithIos2 = personWithIos1.Map();
+        var personWithOther2 = personWithOther1.Map();
+
+        personWithAndroid2.PhoneType.Should().Be(PhoneType2.Android);
+        personWithIos2.PhoneType.Should().Be(PhoneType2.Ios);
+        personWithOther2.PhoneType.Should().Be(PhoneType2.Other);
     }
 
     public record PersonWithPhoneType1(
@@ -60,22 +64,26 @@ public class SimpleModelTests
 
     public enum PhoneType2
     {
+        Other,
         Android,
         Ios,
-        Other,
     }
     
-    [Theory]
-    [InlineData("Rob", PhoneType1.Android, PhoneType2.Android)]
-    [InlineData("Bob", PhoneType1.Ios, PhoneType2.Ios)]
-    [InlineData("Eugene", PhoneType1.Other, PhoneType2.Other)]
-    public void NonNullableEnumToNullableEnumTest(string name, PhoneType1 sourcePhoneType, PhoneType2 expectedPhoneType)
+    [Fact]
+    public void NonNullableEnumToNullableEnumTest()
     {
-        var personWithPhoneType1 = new PersonWithPhoneType1(name, sourcePhoneType);
-        
-        var personWithPhoneType2 = personWithPhoneType1.MapToOptionalPhoneType();
+        // Not using theory to keep number of Integration and Unit tests in sync
+        var personWithAndroid1 = new PersonWithPhoneType1("Rob", PhoneType1.Android);
+        var personWithIos1 = new PersonWithPhoneType1("Bob", PhoneType1.Ios);
+        var personWithOther1 = new PersonWithPhoneType1("Eugene", PhoneType1.Other);
 
-        personWithPhoneType2.PhoneType.Should().Be(expectedPhoneType);
+        var personWithAndroid2 = personWithAndroid1.MapToOptionalPhoneType();
+        var personWithIos2 = personWithIos1.MapToOptionalPhoneType();
+        var personWithOther2 = personWithOther1.MapToOptionalPhoneType();
+
+        personWithAndroid2.PhoneType.Should().Be(PhoneType2.Android);
+        personWithIos2.PhoneType.Should().Be(PhoneType2.Ios);
+        personWithOther2.PhoneType.Should().Be(PhoneType2.Other);
     }
 
     public record PersonWithOptionalPhoneType2(
