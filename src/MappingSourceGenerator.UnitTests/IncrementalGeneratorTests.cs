@@ -8,6 +8,7 @@ namespace MappingSourceGenerator.UnitTests;
 public class IncrementalGeneratorTests
 {
     [Theory]
+    [MemberData(nameof(GenericModelMappingTestData.Data), MemberType = typeof(GenericModelMappingTestData))]
     [MemberData(nameof(ManualMappingTestData.Data), MemberType = typeof(ManualMappingTestData))]
     [MemberData(nameof(NestedModelTestData.Data), MemberType = typeof(NestedModelTestData))]
     [MemberData(nameof(SimpleCollectionTestData.Data), MemberType = typeof(SimpleCollectionTestData))]

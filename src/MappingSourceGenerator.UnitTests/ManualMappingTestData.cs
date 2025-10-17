@@ -7,7 +7,7 @@ public static class ManualMappingTestData
         {
             new object[]
             {
-                "NestedPropertyWithManualMappingTest",
+                "ManualMappingTestData.NestedPropertyWithManualMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -65,7 +65,7 @@ public static class ManualMappingTestData
             },
             new object[]
             {
-                "NestedArrayWithManualItemMappingTest",
+                "ManualMappingTestData.NestedArrayWithManualItemMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -123,7 +123,7 @@ public static class ManualMappingTestData
             },
             new object[]
             {
-                "NestedListWithManualItemMappingTest",
+                "ManualMappingTestData.NestedListWithManualItemMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -181,7 +181,7 @@ public static class ManualMappingTestData
             },
             new object[]
             {
-                "NestedCollectionWithManualMappingTest",
+                "ManualMappingTestData.NestedCollectionWithManualMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -238,7 +238,7 @@ public static class ManualMappingTestData
             },
             new object[]
             {
-                "NestedArrayWithManualMappingTest",
+                "ManualMappingTestData.NestedArrayWithManualMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -295,7 +295,7 @@ public static class ManualMappingTestData
             },
             new object[]
             {
-                "NestedCollectionWithEnumPropertyTest",
+                "ManualMappingTestData.NestedCollectionWithEnumPropertyTest",
                 """
                 #nullable enable
                 using System;
