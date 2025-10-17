@@ -260,7 +260,8 @@ public class Parser : IParser
             return false;
         }
         var parameterTypeMembers = GetMembersWithCaching(parameterType);
-        var mappingProperties = ImmutableArray.CreateBuilder<MappingProperty>(returnTypeConstructorParameters.Length);
+        var mappingProperties = new MappingProperty[returnTypeConstructorParameters.Length];
+        var mappingPropertiesIndex = 0;
 
         foreach (var returnTypeConstructorParameter in returnTypeConstructorParameters)
         {
@@ -304,11 +305,12 @@ public class Parser : IParser
 
             if (mappingProperty is not null)
             {
-                mappingProperties.Add(mappingProperty);
+                mappingProperties[mappingPropertiesIndex] = mappingProperty;
+                mappingPropertiesIndex++;
             }
         }
 
-        if (mappingProperties.Count != returnTypeConstructorParameters.Length)
+        if (mappingPropertiesIndex != returnTypeConstructorParameters.Length)
         {
             return false;
         }
@@ -319,11 +321,9 @@ public class Parser : IParser
             markedMethod.Name,
             accessibility,
             isPartial,
-            parameterType.Name,
-            GetContainingNames(parameterType),
+            GetMappingModel(parameterType),
             parameterName,
-            returnType.Name,
-            GetContainingNames(returnType),
+            GetMappingModel(returnType),
             MappingMethodKind.Object,
             mappingProperties,
             default);
@@ -684,7 +684,9 @@ public class Parser : IParser
         var parameterTypeMembers = GetMembersWithCaching(parameterType);
         // enum members consist of a default constructor and constants, so we need subtract 1 to get count of constants
         var enumValuesCount = parameterTypeMembers.Length - 1; 
-        var enumValues = new List<string>(enumValuesCount);
+        var enumValues = new string[enumValuesCount];
+        var enumValuesIndex = 0;
+        
         foreach (var parameterTypeMember in parameterTypeMembers)
         {
             if (!IsEnumValueConstant(parameterType, parameterTypeMember))
@@ -719,10 +721,11 @@ public class Parser : IParser
                 continue;
             }
 
-            enumValues.Add(parameterTypeMember.Name);
+            enumValues[enumValuesIndex] = parameterTypeMember.Name;
+            enumValuesIndex++;
         }
 
-        if (enumValues.Count != enumValuesCount)
+        if (enumValuesIndex != enumValuesCount)
         {
             return false;
         }
@@ -733,11 +736,9 @@ public class Parser : IParser
             markedMethod.Name,
             accessibility,
             isPartial,
-            parameterType.Name,
-            GetContainingNames(parameterType),
+            GetMappingModel(parameterType),
             parameterName,
-            returnType.Name,
-            GetContainingNames(returnType),
+            GetMappingModel(returnType),
             MappingMethodKind.Enum,
             default,
             enumValues);
@@ -753,7 +754,15 @@ public class Parser : IParser
                 && member is IFieldSymbol field && SymbolEqualityComparer.Default.Equals(field.Type, declaringType);
     }
 
-    private IReadOnlyList<string> GetContainingNames(ISymbol symbol)
+    private static MappingModel GetMappingModel(ITypeSymbol typeSymbol)
+    {
+        return new(
+            typeSymbol.Name,
+            GetContainingNames(typeSymbol),
+            GetTypeArguments(typeSymbol));
+    }
+
+    private static string[] GetContainingNames(ISymbol symbol)
     {
         return GetContainingNamesRecursive(symbol, 0);
 
@@ -774,6 +783,16 @@ public class Parser : IParser
 
             return containingNames;
         }
+    }
+    
+    private static MappingModel[] GetTypeArguments(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol is not INamedTypeSymbol { IsGenericType: true } namedTypeSymbol)
+        {
+            return [];
+        }
+        
+        return namedTypeSymbol.TypeArguments.Select(GetMappingModel).ToArray();
     }
 
     private ImmutableArray<ISymbol> GetMembersWithCaching(INamespaceOrTypeSymbol namespaceOrType)

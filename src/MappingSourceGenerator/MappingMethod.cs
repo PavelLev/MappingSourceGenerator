@@ -4,18 +4,16 @@ namespace MappingSourceGenerator;
 
 public record MappingMethod(
     string ClassName,
-    IReadOnlyList<string> ClassContainingNames,
+    string[] ClassContainingNames,
     string Name,
     Accessibility Accessibility,
     bool IsPartial,
-    string ParameterTypeName,
-    IReadOnlyList<string> ParameterTypeContainingNames,
+    MappingModel ParameterTypeModel,
     string ParameterName,
-    string ReturnTypeName,
-    IReadOnlyList<string> ReturnTypeContainingNames,
+    MappingModel ReturnTypeModel,
     MappingMethodKind Kind,
-    IReadOnlyCollection<MappingProperty>? Properties,
-    IReadOnlyCollection<string>? EnumValues)
+    MappingProperty[]? Properties,
+    string[]? EnumValues)
 {
     // Forcing default Equality comparison.
     // Record by default doesn't handle collections properly

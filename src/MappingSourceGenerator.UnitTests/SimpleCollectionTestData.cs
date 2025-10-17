@@ -7,7 +7,7 @@ public static class SimpleCollectionTestData
         {
             new object[]
             {
-                "PrimitiveTypeReadOnlyCollectionTest",
+                "SimpleCollectionTestData.PrimitiveTypeReadOnlyCollectionTest",
                 """
                 #nullable enable
                 using System;
@@ -54,7 +54,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "PrimitiveTypeListTest",
+                "SimpleCollectionTestData.PrimitiveTypeListTest",
                 """
                 #nullable enable
                 using System;
@@ -101,7 +101,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "EnumEnumerableTest",
+                "SimpleCollectionTestData.EnumEnumerableTest",
                 """
                 #nullable enable
                 using System;
@@ -172,7 +172,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "ReadOnlyCollectionToNullableReadOnlyCollectionTest",
+                "SimpleCollectionTestData.ReadOnlyCollectionToNullableReadOnlyCollectionTest",
                 """
                 #nullable enable
                 using System;
@@ -219,7 +219,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "PrimitiveTypeArrayTest",
+                "SimpleCollectionTestData.PrimitiveTypeArrayTest",
                 """
                 #nullable enable
                 using System;
@@ -266,7 +266,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "PrimitiveTypeReadOnlyListToReadOnlyCollectionTest",
+                "SimpleCollectionTestData.PrimitiveTypeReadOnlyListToReadOnlyCollectionTest",
                 """
                 #nullable enable
                 using System;

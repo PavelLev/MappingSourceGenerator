@@ -1,6 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
-
-namespace MappingSourceGenerator;
+﻿namespace MappingSourceGenerator;
 
 public class MappingMethodEqualityComparer : IEqualityComparer<MappingMethod>
 {
@@ -30,11 +28,9 @@ public class MappingMethodEqualityComparer : IEqualityComparer<MappingMethod>
             && x.Name == y.Name
             && x.Accessibility == y.Accessibility
             && x.IsPartial == y.IsPartial
-            && x.ParameterTypeName == y.ParameterTypeName
-            && x.ParameterTypeContainingNames.SequenceEqual(y.ParameterTypeContainingNames)
+            && MappingModelEqualityComparer.Default.Equals(x.ParameterTypeModel, y.ParameterTypeModel)
             && x.ParameterName == y.ParameterName
-            && x.ReturnTypeName == y.ReturnTypeName
-            && x.ReturnTypeContainingNames.SequenceEqual(y.ReturnTypeContainingNames)
+            && MappingModelEqualityComparer.Default.Equals(x.ReturnTypeModel, y.ReturnTypeModel)
             && x.Kind == y.Kind
             && 
             ((x.Kind == MappingMethodKind.Enum && x.EnumValues!.SequenceEqual(y.EnumValues!))
@@ -47,37 +43,25 @@ public class MappingMethodEqualityComparer : IEqualityComparer<MappingMethod>
         unchecked
         {
             var hashCode = obj.ClassName.GetHashCode();
-            hashCode = AddCollectionHashCode(hashCode, obj.ClassContainingNames);
+            hashCode = hashCode.AddCollectionHashCode(obj.ClassContainingNames);
             hashCode = (hashCode * 397) ^ obj.Name.GetHashCode();
             hashCode = (hashCode * 397) ^ obj.Accessibility.GetHashCode();
             hashCode = (hashCode * 397) ^ obj.IsPartial.GetHashCode();
-            hashCode = (hashCode * 397) ^ obj.ParameterTypeName.GetHashCode();
-            hashCode = AddCollectionHashCode(hashCode, obj.ParameterTypeContainingNames);
+            hashCode = (hashCode * 397) ^ MappingModelEqualityComparer.Default.GetHashCode(obj.ParameterTypeModel);
             hashCode = (hashCode * 397) ^ obj.ParameterName.GetHashCode();
-            hashCode = (hashCode * 397) ^ obj.ReturnTypeName.GetHashCode();
-            hashCode = AddCollectionHashCode(hashCode, obj.ReturnTypeContainingNames);
+            hashCode = (hashCode * 397) ^ MappingModelEqualityComparer.Default.GetHashCode(obj.ReturnTypeModel);
             hashCode = (hashCode * 397) ^ (int)obj.Kind;
             
             if (obj.Kind == MappingMethodKind.Enum)
             {
-                hashCode = AddCollectionHashCode(hashCode, obj.EnumValues!);
+                hashCode = hashCode.AddCollectionHashCode(obj.EnumValues!);
             }
             else if (obj.Kind == MappingMethodKind.Object)
             {
-                hashCode = AddCollectionHashCode(hashCode, obj.Properties!);
+                hashCode = hashCode.AddCollectionHashCode(obj.Properties!);
             }
             
             return hashCode;
         }
-    }
-
-    private int AddCollectionHashCode<T>(
-        int hashCode,
-        IReadOnlyCollection<T> collection)
-        where T : notnull
-    {
-        return collection.Aggregate(
-            hashCode, 
-            (current, item) => (current * 397) ^ item.GetHashCode());
     }
 }
