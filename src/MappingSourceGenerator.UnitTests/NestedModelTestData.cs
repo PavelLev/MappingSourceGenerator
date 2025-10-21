@@ -7,7 +7,7 @@ public static class NestedModelTestData
         {
             new object[]
             {
-                "NestedModelTestData.NestedPropertyTest",
+                "NestedModel.NestedPropertyTest",
                 """
                 #nullable enable
                 using System.Collections.Generic;
@@ -64,7 +64,7 @@ public static class NestedModelTestData
             },
             new object[]
             {
-                "NestedModelTestData.NestedCollectionTest",
+                "NestedModel.NestedCollectionTest",
                 """
                 #nullable enable
                 using System.Collections.Generic;
@@ -121,7 +121,7 @@ public static class NestedModelTestData
             },
             new object[]
             {
-                "NestedModelTestData.NestedListTest",
+                "NestedModel.NestedListTest",
                 """
                 #nullable enable
                 using System.Collections.Generic;
@@ -178,7 +178,7 @@ public static class NestedModelTestData
             },
             new object[]
             {
-                "NestedModelTestData.NestedCollectionWithEnumPropertyTest",
+                "NestedModel.NestedCollectionWithEnumPropertyTest",
                 """
                 #nullable enable
                 using System.Collections.Generic;
@@ -259,7 +259,7 @@ public static class NestedModelTestData
             },
             new object[]
             {
-                "NestedModelTestData.NestedNullablePropertyTest",
+                "NestedModel.NestedNullablePropertyTest",
                 """
                 #nullable enable
                 using System.Collections.Generic;
@@ -316,7 +316,7 @@ public static class NestedModelTestData
             },
             new object[]
             {
-                "NestedModelTestData.NestedArrayTest",
+                "NestedModel.NestedArrayTest",
                 """
                 #nullable enable
                 using System.Collections.Generic;

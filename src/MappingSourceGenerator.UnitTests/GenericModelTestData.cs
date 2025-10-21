@@ -1,13 +1,13 @@
 ﻿namespace MappingSourceGenerator.UnitTests;
 
-public static class GenericModelMappingTestData
+public static class GenericModelTestData
 {
     public static IEnumerable<object[]> Data
         => new[]
         {
             new object[]
             {
-                "GenericModelMappingTestData.NestedGenericProperty",
+                "GenericModel.NestedGenericProperty",
                 """
                 #nullable enable
                 using System;
@@ -16,7 +16,7 @@ public static class GenericModelMappingTestData
 
                 namespace MappingSourceGenerator.UnitTests;
 
-                public class GenericModelMappingTests
+                public class GenericModelTests
                 {
                     public record PersonWithCar1<TCar>(
                         string Name,
@@ -33,10 +33,10 @@ public static class GenericModelMappingTestData
                         string Model);
                 }
 
-                public static partial class GenericModelMappingTestsMapper
+                public static partial class GenericModelTestsMapper
                 {
                     [GenerateMapping]
-                    public static partial GenericModelMappingTests.PersonWithCar2<GenericModelMappingTests.Car2> Map(this GenericModelMappingTests.PersonWithCar1<GenericModelMappingTests.Car1> personWithCar1);
+                    public static partial GenericModelTests.PersonWithCar2<GenericModelTests.Car2> Map(this GenericModelTests.PersonWithCar1<GenericModelTests.Car1> personWithCar1);
                 }
                 """,
                 """
@@ -48,15 +48,15 @@ public static class GenericModelMappingTestData
 
                 namespace MappingSourceGenerator.UnitTests;
 
-                partial class GenericModelMappingTestsMapper
+                partial class GenericModelTestsMapper
                 {
-                    public static MappingSourceGenerator.UnitTests.GenericModelMappingTests.Car2 Map(
-                        this MappingSourceGenerator.UnitTests.GenericModelMappingTests.Car1 car1)
+                    public static MappingSourceGenerator.UnitTests.GenericModelTests.Car2 Map(
+                        this MappingSourceGenerator.UnitTests.GenericModelTests.Car1 car1)
                         => new(
                             car1.Model);
                 
-                    public static partial MappingSourceGenerator.UnitTests.GenericModelMappingTests.PersonWithCar2<MappingSourceGenerator.UnitTests.GenericModelMappingTests.Car2> Map(
-                        this MappingSourceGenerator.UnitTests.GenericModelMappingTests.PersonWithCar1<MappingSourceGenerator.UnitTests.GenericModelMappingTests.Car1> personWithCar1)
+                    public static partial MappingSourceGenerator.UnitTests.GenericModelTests.PersonWithCar2<MappingSourceGenerator.UnitTests.GenericModelTests.Car2> Map(
+                        this MappingSourceGenerator.UnitTests.GenericModelTests.PersonWithCar1<MappingSourceGenerator.UnitTests.GenericModelTests.Car1> personWithCar1)
                         => new(
                             personWithCar1.Name,
                             personWithCar1.Car.Map());
@@ -65,7 +65,7 @@ public static class GenericModelMappingTestData
             },
              new object[]
              {
-                 "GenericModelMappingTestData.NestedGenericPropertyWithManualMapping",
+                 "GenericModel.NestedGenericPropertyWithManualMapping",
                  """
                  #nullable enable
                  using System;
@@ -74,7 +74,7 @@ public static class GenericModelMappingTestData
 
                  namespace MappingSourceGenerator.UnitTests;
 
-                 public class GenericModelMappingTests
+                 public class GenericModelTests
                  {
                      public record PersonWithCar1<TCar>(
                          string Name,
@@ -91,14 +91,14 @@ public static class GenericModelMappingTestData
                          string Model2);
                  }
 
-                 public static partial class GenericModelMappingTestsMapper
+                 public static partial class GenericModelTestsMapper
                  {
                      [GenerateMapping]
-                     public static partial GenericModelMappingTests.PersonWithCar2<GenericModelMappingTests.ManualCar2> Map(
-                        this GenericModelMappingTests.PersonWithCar1<GenericModelMappingTests.ManualCar1> personWithCar1);
+                     public static partial GenericModelTests.PersonWithCar2<GenericModelTests.ManualCar2> Map(
+                        this GenericModelTests.PersonWithCar1<GenericModelTests.ManualCar1> personWithCar1);
                  
-                     public static GenericModelMappingTests.ManualCar2 Map(
-                         this GenericModelMappingTests.ManualCar1 manualCar1)
+                     public static GenericModelTests.ManualCar2 Map(
+                         this GenericModelTests.ManualCar1 manualCar1)
                          => new(
                              manualCar1.Model1);
                  }
@@ -112,10 +112,10 @@ public static class GenericModelMappingTestData
 
                  namespace MappingSourceGenerator.UnitTests;
 
-                 partial class GenericModelMappingTestsMapper
+                 partial class GenericModelTestsMapper
                  {
-                     public static partial MappingSourceGenerator.UnitTests.GenericModelMappingTests.PersonWithCar2<MappingSourceGenerator.UnitTests.GenericModelMappingTests.ManualCar2> Map(
-                         this MappingSourceGenerator.UnitTests.GenericModelMappingTests.PersonWithCar1<MappingSourceGenerator.UnitTests.GenericModelMappingTests.ManualCar1> personWithCar1)
+                     public static partial MappingSourceGenerator.UnitTests.GenericModelTests.PersonWithCar2<MappingSourceGenerator.UnitTests.GenericModelTests.ManualCar2> Map(
+                         this MappingSourceGenerator.UnitTests.GenericModelTests.PersonWithCar1<MappingSourceGenerator.UnitTests.GenericModelTests.ManualCar1> personWithCar1)
                          => new(
                              personWithCar1.Name,
                              personWithCar1.Car.Map());

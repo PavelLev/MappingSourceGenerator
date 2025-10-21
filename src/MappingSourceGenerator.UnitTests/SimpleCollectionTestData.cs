@@ -7,7 +7,7 @@ public static class SimpleCollectionTestData
         {
             new object[]
             {
-                "SimpleCollectionTestData.PrimitiveTypeReadOnlyCollectionTest",
+                "SimpleCollection.PrimitiveTypeReadOnlyCollectionTest",
                 """
                 #nullable enable
                 using System;
@@ -54,7 +54,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "SimpleCollectionTestData.PrimitiveTypeListTest",
+                "SimpleCollection.PrimitiveTypeListTest",
                 """
                 #nullable enable
                 using System;
@@ -101,7 +101,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "SimpleCollectionTestData.EnumEnumerableTest",
+                "SimpleCollection.EnumEnumerableTest",
                 """
                 #nullable enable
                 using System;
@@ -172,7 +172,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "SimpleCollectionTestData.ReadOnlyCollectionToNullableReadOnlyCollectionTest",
+                "SimpleCollection.ReadOnlyCollectionToNullableReadOnlyCollectionTest",
                 """
                 #nullable enable
                 using System;
@@ -219,7 +219,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "SimpleCollectionTestData.PrimitiveTypeArrayTest",
+                "SimpleCollection.PrimitiveTypeArrayTest",
                 """
                 #nullable enable
                 using System;
@@ -266,7 +266,7 @@ public static class SimpleCollectionTestData
             },
             new object[]
             {
-                "SimpleCollectionTestData.PrimitiveTypeReadOnlyListToReadOnlyCollectionTest",
+                "SimpleCollection.PrimitiveTypeReadOnlyListToReadOnlyCollectionTest",
                 """
                 #nullable enable
                 using System;

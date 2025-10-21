@@ -7,7 +7,7 @@ public static class UsableMapMethodNamesTestData
         {
             new object[]
             {
-                "NestedPropertyWithUsableMapMethodNameTest",
+                "UsableMapMethodNames.NestedPropertyWithUsableMapMethodNameTest",
                 """
                 #nullable enable
                 using System;
@@ -65,7 +65,7 @@ public static class UsableMapMethodNamesTestData
             },
             new object[]
             {
-                "NestedArrayWithWithUsableMapMethodNameItemMappingTest",
+                "UsableMapMethodNames.NestedArrayWithWithUsableMapMethodNameItemMappingTest",
                 """
                 #nullable enable
                 using System;
@@ -123,7 +123,7 @@ public static class UsableMapMethodNamesTestData
             },
             new object[]
             {
-                "NestedCollectionWithEnumPropertyUsableMapMethodNameTest",
+                "UsableMapMethodNames.NestedCollectionWithEnumPropertyUsableMapMethodNameTest",
                 """
                 #nullable enable
                 using System;

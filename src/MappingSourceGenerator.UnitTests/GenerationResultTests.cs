@@ -6,7 +6,7 @@ namespace MappingSourceGenerator.UnitTests;
 public class GenerationResultTests
 {
     [Theory]
-    [MemberData(nameof(GenericModelMappingTestData.Data), MemberType = typeof(GenericModelMappingTestData))]
+    [MemberData(nameof(GenericModelTestData.Data), MemberType = typeof(GenericModelTestData))]
     [MemberData(nameof(ManualMappingTestData.Data), MemberType = typeof(ManualMappingTestData))]
     [MemberData(nameof(NestedModelTestData.Data), MemberType = typeof(NestedModelTestData))]
     [MemberData(nameof(SimpleCollectionTestData.Data), MemberType = typeof(SimpleCollectionTestData))]

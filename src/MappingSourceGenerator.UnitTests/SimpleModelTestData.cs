@@ -7,7 +7,7 @@ public static class SimpleModelTestData
         {
             new object[]
             {
-                "SimpleModelTestData.PrimitiveTypeTest",
+                "SimpleModel.PrimitiveTypeTest",
                 """
                 #nullable enable
                 using System;
@@ -54,7 +54,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.EnumTest",
+                "SimpleModel.EnumTest",
                 """
                 #nullable enable
                 using System;
@@ -125,7 +125,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.NonNullableEnumToNullableEnumTest",
+                "SimpleModel.NonNullableEnumToNullableEnumTest",
                 """
                 #nullable enable
                 using System;
@@ -196,7 +196,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.NullableReferenceToNullableReferenceTest",
+                "SimpleModel.NullableReferenceToNullableReferenceTest",
                 """
                 #nullable enable
                 using System;
@@ -243,7 +243,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.NonNullableReferenceToNullableReferenceTest",
+                "SimpleModel.NonNullableReferenceToNullableReferenceTest",
                 """
                 #nullable enable
                 using System;
@@ -290,7 +290,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.NonNullableValueToNullableValueTest",
+                "SimpleModel.NonNullableValueToNullableValueTest",
                 """
                 #nullable enable
                 using System;
@@ -337,7 +337,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.EnumShouldBeMappedToSupersetEnumTest",
+                "SimpleModel.EnumShouldBeMappedToSupersetEnumTest",
                 """
                 #nullable enable
                 using System;
@@ -393,7 +393,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.NullableReferenceToUnspecifiedReferenceTest",
+                "SimpleModel.NullableReferenceToUnspecifiedReferenceTest",
                 """
                 #nullable enable
                 using System;
@@ -442,7 +442,7 @@ public static class SimpleModelTestData
             },
             new object[]
             {
-                "SimpleModelTestData.ObsoleteClassesShouldBeMappedTest",
+                "SimpleModel.ObsoleteClassesShouldBeMappedTest",
                 """
                 #nullable enable
                 using System;

@@ -345,7 +345,9 @@ public class Parser : IParser
         Accessibility accessibility,
         INamedTypeSymbol mappingClass)
     {
-        if (IsDeFactoNullable(sourceType) && !IsDeFactoNullable(targetType))
+        var isSourceTypeNullable = IsDeFactoNullable(sourceType);
+        var isTargetTypeNullable = IsDeFactoNullable(targetType);
+        if (isSourceTypeNullable && !isTargetTypeNullable)
         {
             diagnostics.Add(
                 Diagnostic.Create(
@@ -391,10 +393,11 @@ public class Parser : IParser
         {
             return new(propertyName, MappingPropertyKind.Direct, null, false, false);
         }
-        
-        var shouldUseNullConditionalOperator = sourceType.NullableAnnotation == NullableAnnotation.Annotated;
 
-        var existingSingleItemMapMethodName = GetExistingMappingMethodOrDefault(
+        sourceType = RemoveNullability(sourceType);
+        targetType = RemoveNullability(targetType);
+
+        var (existingSingleItemMapMethodName, isExistingSingleItemMapMethodParameterNullable) = GetExistingMappingMethodOrDefault(
             this,
             GetMembersWithCaching(mappingClass),
             markedMethod,
@@ -407,7 +410,7 @@ public class Parser : IParser
                 propertyName,
                 MappingPropertyKind.SingleItemMapping,
                 existingSingleItemMapMethodName,
-                shouldUseNullConditionalOperator,
+                isSourceTypeNullable && !isExistingSingleItemMapMethodParameterNullable,
                 false);
         }
 
@@ -440,7 +443,7 @@ public class Parser : IParser
 
         if (targetItemType is not null)
         {
-            var existingEnumerableMapMethodName = GetExistingMappingMethodOrDefault(
+            var (existingEnumerableMapMethodName, _) = GetExistingMappingMethodOrDefault(
                 this,
                 GetMembersWithCaching(mappingClass),
                 markedMethod,
@@ -453,7 +456,7 @@ public class Parser : IParser
                     propertyName,
                     MappingPropertyKind.EnumerableMapping,
                     existingEnumerableMapMethodName,
-                    shouldUseNullConditionalOperator,
+                    isSourceTypeNullable,
                     isTargetCollectionList);
             }
             
@@ -461,16 +464,13 @@ public class Parser : IParser
             sourceType = sourceItemType!;
         }
 
-        RemoveNullability(ref sourceType);
-        RemoveNullability(ref targetType);
-
         if (MappingMethodAlreadyGenerated(_symbolsByMappingMethod, mappingMethods, markedMethod.Name, mappingClass, targetType, sourceType))
         {
             return new(
                 propertyName,
                 targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
                 markedMethod.Name,
-                shouldUseNullConditionalOperator,
+                isSourceTypeNullable,
                 isTargetCollectionList);
         }
 
@@ -495,26 +495,28 @@ public class Parser : IParser
             propertyName,
             targetItemType is null ? MappingPropertyKind.SingleItemMapping : MappingPropertyKind.EnumerableMapping,
             markedMethod.Name,
-            shouldUseNullConditionalOperator,
+            isSourceTypeNullable,
             isTargetCollectionList);
 
         static bool IsDeFactoNullable(ITypeSymbol type)
-            => type.NullableAnnotation is NullableAnnotation.Annotated or NullableAnnotation.None;
+            => type is { NullableAnnotation: NullableAnnotation.Annotated } 
+                or { IsReferenceType: true, NullableAnnotation: NullableAnnotation.None };
 
-        static void RemoveNullability(ref ITypeSymbol typeSymbol)
+        static ITypeSymbol RemoveNullability(ITypeSymbol typeSymbol)
         {
-            if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+            if (typeSymbol.NullableAnnotation != NullableAnnotation.Annotated)
             {
-                if (typeSymbol is { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } 
-                    and INamedTypeSymbol namedTypeSymbol)
-                {
-                    typeSymbol = namedTypeSymbol.TypeArguments[0];
-                }
-                else
-                {
-                    typeSymbol = typeSymbol.OriginalDefinition;
-                }
+                return typeSymbol;
             }
+            
+            if (typeSymbol is { IsValueType: true, OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } 
+                and INamedTypeSymbol namedTypeSymbol)
+            {
+                return namedTypeSymbol.TypeArguments[0];
+            }
+
+            return typeSymbol.OriginalDefinition;
+
         }
 
         static bool AreCollectionTypesCompatible(CollectionType? sourceCollectionType, CollectionType? targetCollectionType)
@@ -539,7 +541,7 @@ public class Parser : IParser
             };
         }
 
-        static string? GetExistingMappingMethodOrDefault(
+        static (string?, bool isParameterNullable) GetExistingMappingMethodOrDefault(
             Parser parser,
             ImmutableArray<ISymbol> mappingClassMembers,
             IMethodSymbol markedMethod,
@@ -557,18 +559,21 @@ public class Parser : IParser
 
                 var methodParameters = parser.GetParametersWithCaching(method);
 
+                var methodReturnType = method.ReturnType;
+                var methodParameterType = methodParameters[0].Type;
+                
                 var isMethodMatching = methodParameters.Length == 1
                     && CanMapMethodBeUsed(markedMethod, method.Name)
-                    && SymbolEqualityComparer.Default.Equals(method.ReturnType, targetType)
-                    && SymbolEqualityComparer.Default.Equals(methodParameters[0].Type, sourceType);
+                    && SymbolEqualityComparer.Default.Equals(RemoveNullability(methodReturnType), targetType)
+                    && SymbolEqualityComparer.Default.Equals(RemoveNullability(methodParameterType), sourceType);
 
                 if (isMethodMatching)
                 {
-                    return method.Name;
+                    return (method.Name, IsDeFactoNullable(methodParameterType));
                 }
             }
 
-            return null;
+            return (null, false);
         }
         
         static bool CanMapMethodBeUsed(
