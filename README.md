@@ -20,7 +20,7 @@ For examples please check out `src/MappingSourceGenerator.IntegrationTests` proj
 1. Add package references to required packages
 
 ```xml
-        <PackageReference Include="MappingSourceGenerator" Version="0.1.14" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="MappingSourceGenerator" Version="0.1.15" PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
 2. Create method definition for source generator. It should be `static partial` method marked with `MappingSourceGenerator.Markers.GenerateMappingAttribute` in `static partial` class.

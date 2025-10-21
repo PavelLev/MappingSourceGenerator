@@ -4,7 +4,7 @@ using Xunit;
 
 namespace MappingSourceGenerator.IntegrationTests;
 
-public class GenericModelMappingTests
+public class GenericModelTests
 {
     [Fact]
     public void NestedGenericPropertyTest()
@@ -54,14 +54,14 @@ public class GenericModelMappingTests
 public static partial class GenericModelMappingTestsMapper
 {
     [GenerateMapping]
-    public static partial GenericModelMappingTests.PersonWithCar2<GenericModelMappingTests.Car2> Map(
-        this GenericModelMappingTests.PersonWithCar1<GenericModelMappingTests.Car1> personWithCar1);
+    public static partial GenericModelTests.PersonWithCar2<GenericModelTests.Car2> Map(
+        this GenericModelTests.PersonWithCar1<GenericModelTests.Car1> personWithCar1);
     
     [GenerateMapping]
-    public static partial GenericModelMappingTests.PersonWithCar2<GenericModelMappingTests.ManualCar2> Map(
-        this GenericModelMappingTests.PersonWithCar1<GenericModelMappingTests.ManualCar1> personWithCar1);
+    public static partial GenericModelTests.PersonWithCar2<GenericModelTests.ManualCar2> Map(
+        this GenericModelTests.PersonWithCar1<GenericModelTests.ManualCar1> personWithCar1);
 
-    public static GenericModelMappingTests.ManualCar2 Map(this GenericModelMappingTests.ManualCar1 manualCar1)
+    public static GenericModelTests.ManualCar2 Map(this GenericModelTests.ManualCar1 manualCar1)
         => new(
             manualCar1.Model1);
 }

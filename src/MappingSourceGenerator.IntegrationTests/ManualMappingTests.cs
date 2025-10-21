@@ -204,6 +204,65 @@ public class ManualMappingTests
         Electric,
         Petrol,
     }
+
+    [Fact]
+    public void NullableEnumPropertyWithManualNullableMappingTest()
+    {
+        var personWithAndroid1 = new PersonWithOptionalPhoneType1(
+            "Rob",
+            PhoneType1.Android1);
+        var personWithNull1 = new PersonWithOptionalPhoneType1(
+            "Bob",
+            null);
+
+        var personWithAndroid2 = personWithAndroid1.MapNullable();
+        var personWithNull2 = personWithNull1.MapNullable();
+
+        using (new AssertionScope())
+        {
+            personWithAndroid2.PhoneType.Should().Be(PhoneType2.Android2);
+            personWithNull2.PhoneType.Should().BeNull();
+        }
+    }
+    
+    public record PersonWithOptionalPhoneType1(
+        string Name,
+        PhoneType1? PhoneType);
+                    
+    public enum PhoneType1
+    {
+        Android1,
+    }
+                    
+    public record PersonWithOptionalPhoneType2(
+        string Name,
+        PhoneType2? PhoneType);
+                    
+    public enum PhoneType2
+    {
+        Android2,
+    }
+
+    [Fact]
+    public void NullableEnumPropertyWithManualNonNullableMappingTest()
+    {
+        // Not using theory to keep number of Integration and Unit tests in sync
+        var personWithAndroid1 = new PersonWithOptionalPhoneType1(
+            "Rob",
+            PhoneType1.Android1);
+        var personWithNull1 = new PersonWithOptionalPhoneType1(
+            "Bob",
+            null);
+
+        var personWithAndroid2 = personWithAndroid1.MapNonNullable();
+        var personWithNull2 = personWithNull1.MapNonNullable();
+
+        using (new AssertionScope())
+        {
+            personWithAndroid2.PhoneType.Should().Be(PhoneType2.Android2);
+            personWithNull2.PhoneType.Should().BeNull();
+        }
+    }
 }
 
 public static partial class ManualMappingTestsMapper
@@ -244,5 +303,28 @@ public static partial class ManualMappingTestsMapper
             ManualMappingTests.CarType1.Electric => ManualMappingTests.CarType2.Electric,
             ManualMappingTests.CarType1.Petrol => ManualMappingTests.CarType2.Petrol,
             _ => throw new InvalidOperationException($"Unable to map MappingSourceGenerator.IntegrationTests.ManualMappingTests.CarType1.{carType1}"),
+        };
+    
+    [GenerateMapping]
+    public static partial ManualMappingTests.PersonWithOptionalPhoneType2 MapNonNullable(
+        this  ManualMappingTests.PersonWithOptionalPhoneType1 personWithOptionalPhoneType1);
+
+    public static ManualMappingTests.PhoneType2 MapNonNullable(this ManualMappingTests.PhoneType1 phoneType1)
+        => phoneType1 switch
+        {
+            ManualMappingTests.PhoneType1.Android1 => ManualMappingTests.PhoneType2.Android2,
+            _ => throw new InvalidOperationException($"Unable to map phone type {phoneType1}")
+        };
+    
+    [GenerateMapping]
+    public static partial ManualMappingTests.PersonWithOptionalPhoneType2 MapNullable(
+        this  ManualMappingTests.PersonWithOptionalPhoneType1 personWithOptionalPhoneType1);
+
+    public static ManualMappingTests.PhoneType2? MapNullable(this ManualMappingTests.PhoneType1? phoneType1)
+        => phoneType1 switch
+        {
+            null => null,
+            ManualMappingTests.PhoneType1.Android1 => ManualMappingTests.PhoneType2.Android2,
+            _ => throw new InvalidOperationException($"Unable to map phone type {phoneType1}")
         };
 }
